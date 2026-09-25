@@ -35,9 +35,8 @@ export default async function ResetPasswordPage({
         eyebrow={t.invalidEyebrow}
         heading={t.invalidHeading}
         intro={t.invalidBody}
-        principles={["singleUse", "shortLived", "fullSignOut"]}
         locale={locale}
-      dict={dict}
+        dict={dict}
         switcher={
           <Link href="/forgot-password">{t.requestNew}</Link>
         }
@@ -57,7 +56,6 @@ export default async function ResetPasswordPage({
       heading={t.heading}
       intro={t.intro}
       privacy={t.privacy}
-      principles={["strongPasswords", "immediateEffect", "thenSignIn"]}
       locale={locale}
       dict={dict}
     >

@@ -364,6 +364,14 @@ the language switcher actually changes the next request, that the roster export
 answers only to a same-origin POST, and that a member id from another parish is
 indistinguishable from one that does not exist.
 
+It also guards the interface decisions that are easy to undo by accident. The
+removed privacy panels are asserted absent by class name rather than by copy, so
+a legitimate reuse of the same words elsewhere on the site does not fail the run;
+the search hint is asserted to be a key-capped `<button>`; and every control
+meaning "show me this list" is asserted to filter in place, which is checked by
+the *absence* of a `?filter=` link rather than the presence of any one class, so
+adding a fourth such control without converting it fails the run.
+
 It signs in as a real account, so point it at a database you are willing to write
 to. The only thing it changes is the reader's language, which it switches and
 then switches back.
@@ -389,7 +397,10 @@ custom intervals remain unchanged.
 
 - `/login`, `/register`, `/forgot-password`, `/reset-password` — authentication
 - `/` — dashboard, attention queues, search/filter/sort, pagination, and fast
-  attendance recording
+  attendance recording. The queues, the stat cards, and the counted quick
+  actions all filter the roster in place rather than navigating: one filter
+  lives above them in `member-filter-context.tsx`, so "show me the overdue"
+  costs a state change and a scroll instead of a full document request
 - `/members/new` — minimal member creation form
 - `/members/import` — bulk roster import from `.xlsx` or `.csv`
 - `/members/[id]/edit` — edit operational member details

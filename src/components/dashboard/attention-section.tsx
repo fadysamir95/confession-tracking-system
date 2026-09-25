@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { MemberStatus } from "@/lib/constants";
 import { formatDate, type SupportedDateFormat } from "@/lib/dates";
 import type { Dictionary } from "@/lib/dictionaries/en";
@@ -14,6 +13,7 @@ import {
   type RecordTarget,
 } from "@/components/members/record-confession-dialog";
 import { useDashboardFeedback } from "@/components/dashboard/dashboard-feedback";
+import { useMemberFilter } from "@/components/dashboard/member-filter-context";
 
 /**
  * The three attention lists share one phrase per status rather than each
@@ -51,7 +51,6 @@ export function AttentionSection({
   members,
   dateFormat,
   today,
-  allHref,
   locale,
   dict,
 }: {
@@ -61,11 +60,11 @@ export function AttentionSection({
   members: DashboardMember[];
   dateFormat: SupportedDateFormat;
   today: string;
-  allHref: string;
   locale: Locale;
   dict: Dictionary;
 }) {
   const showMessage = useDashboardFeedback();
+  const { goToFilter } = useMemberFilter();
   const [recordTarget, setRecordTarget] = useState<RecordTarget | null>(null);
 
   function targetFor(member: DashboardMember): RecordTarget {
@@ -90,9 +89,21 @@ export function AttentionSection({
           </div>
           <p>{description}</p>
         </div>
-        <Link className="text-link" href={allHref}>
+        {/* A button, not a link to `/?filter=…#members`.
+
+            The link did work — the page read the parameter and the anchor
+            scrolled — so this is not a fix for something broken. It is what it
+            cost: a whole document request to rebuild a roster the browser
+            already had, discarding the search text, the sort, and the page the
+            reader was on. Setting the shared filter and scrolling to it is the
+            same result without the round trip. */}
+        <button
+          type="button"
+          className="text-link text-link--button"
+          onClick={() => goToFilter(status)}
+        >
           {dict.common.viewAll}
-        </Link>
+        </button>
       </div>
 
       {members.length ? (

@@ -6,22 +6,23 @@ import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries/en";
 
 /**
- * A key into the flat catalogue of privacy principles.
+ * The frame every public screen sits in.
  *
- * The catalogue itself is one block of copy, and each screen chooses which
- * three of it to show. Selecting by key rather than by writing a new triple per
- * screen means a principle is phrased once in every language, and a screen that
- * wants a different set of three costs three short identifiers instead of six
- * new strings that would need translating again.
+ * The panel is a single column and is centred on its own. It used to be a
+ * two-column layout whose second column held three numbered privacy principles,
+ * which is the block that was removed; the grid went with it rather than being
+ * left behind to hold one panel, so this is now one centred column rather than
+ * a half-width one.
+ *
+ * `privacy` is a single line under the form, not a panel. It says what the
+ * system does not collect, which is worth stating once where someone is about to
+ * type, and is not worth three times on a screen the reader came to use.
  */
-export type PrincipleKey = keyof Dictionary["auth"]["principlesContent"];
-
 export function AuthShell({
   titleId,
   eyebrow,
   heading,
   intro,
-  principles,
   privacy,
   switcher,
   children,
@@ -32,7 +33,6 @@ export function AuthShell({
   eyebrow: string;
   heading: string;
   intro: string;
-  principles: [PrincipleKey, PrincipleKey, PrincipleKey];
   privacy?: string;
   switcher?: ReactNode;
   children: ReactNode;
@@ -80,19 +80,6 @@ export function AuthShell({
           />
         </div>
       </section>
-
-      <aside className="auth-aside" aria-label={dict.auth.principles}>
-        {principles.map((key, index) => {
-          const principle = dict.auth.principlesContent[key];
-          return (
-            <div key={key}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <h2>{principle.title}</h2>
-              <p>{principle.body}</p>
-            </div>
-          );
-        })}
-      </aside>
     </main>
   );
 }

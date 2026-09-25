@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth-actions";
 import { AppNavigation } from "@/components/layout/app-navigation";
-import { LogoutIcon, ShieldIcon } from "@/components/ui/icons";
+import { LogoutIcon } from "@/components/ui/icons";
 import { BrandMark } from "@/components/ui/brand-mark";
 import type { TenantContext } from "@/server/auth";
 import { roleLabel } from "@/lib/labels";
@@ -48,13 +48,6 @@ export function AppShell({
             dict={dict}
             note={dict.settings.language.note}
           />
-          <div className="privacy-note">
-            <ShieldIcon />
-            <div>
-              <strong>{dict.shell.privacyTitle}</strong>
-              <span>{dict.shell.privacyBody}</span>
-            </div>
-          </div>
           <div className="sidebar__user">
             <span className="avatar" aria-hidden="true">
               {user.name.slice(0, 1).toUpperCase()}

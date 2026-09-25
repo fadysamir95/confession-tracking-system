@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, type SupportedDateFormat } from "@/lib/dates";
 import {
   filterMembers,
@@ -12,7 +11,6 @@ import {
   searchMembers,
   sortLabel,
   sortMembers,
-  type MemberFilter,
 } from "@/lib/member-filters";
 import type { Dictionary } from "@/lib/dictionaries/en";
 import { fill, formatNumber, formatPlural, type Locale } from "@/lib/i18n";
@@ -30,18 +28,15 @@ import {
   SearchIcon,
 } from "@/components/ui/icons";
 import { MemberDrawer } from "@/components/members/member-drawer";
+import { useMemberFilter } from "@/components/dashboard/member-filter-context";
 import {
   RecordConfessionDialog,
   type RecordTarget,
 } from "@/components/members/record-confession-dialog";
+import type { MemberFilter } from "@/lib/member-filters";
+import { scrollIntoView } from "@/lib/scroll";
 
 const PAGE_SIZE = 15;
-
-function validFilter(value?: string): MemberFilter {
-  return MEMBER_FILTERS.includes(value as MemberFilter)
-    ? (value as MemberFilter)
-    : "ALL";
-}
 
 function dueDescription(member: DashboardMember, locale: Locale, dict: Dictionary): string {
   if (member.status === "OVERDUE") {
@@ -77,7 +72,6 @@ export function MemberExplorer({
   today,
   canManageLifecycle,
   dateFormat,
-  initialFilter,
   autoFocus = false,
   locale,
   dict,
@@ -86,20 +80,50 @@ export function MemberExplorer({
   today: string;
   canManageLifecycle: boolean;
   dateFormat: SupportedDateFormat;
-  initialFilter?: string;
   autoFocus?: boolean;
   locale: Locale;
   dict: Dictionary;
 }) {
+  const { filter, setFilter } = useMemberFilter();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<MemberFilter>(() => validFilter(initialFilter));
   const [sort, setSort] = useState<(typeof MEMBER_SORTS)[number]>("ATTENTION");
-  const [page, setPage] = useState(1);
   const [recordTargetState, setRecordTargetState] = useState<RecordTarget | null>(null);
   const [drawerMemberId, setDrawerMemberId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const m = dict.members;
+
+  /* The current page, remembered together with the filter it belongs to.
+     A page number is only meaningful relative to the list it was cut from, so
+     the two are stored as one value rather than as two that have to be kept in
+     step.
+
+     The reset is done during render, not in an effect, and that is not a style
+     choice. The filter can be changed from outside this component — that is
+     what the attention queues do — so a reset at the call sites cannot be
+     exhaustive. React's documented way to adjust state that a change has just
+     invalidated is to do it while rendering: it re-runs this component
+     immediately with the corrected value and never paints the stale one.
+
+     An effect would paint first. For a reader on page 3 who chooses "Overdue"
+     from a queue above, and the result has one page, that first paint is an
+     empty table with a page indicator reading "Page 3 of 1". */
+  const [pagination, setPagination] = useState({ filter, page: 1 });
+  if (pagination.filter !== filter) {
+    setPagination({ filter, page: 1 });
+  }
+  const page = pagination.page;
+
+  const resetToFirstPage = useCallback(() => {
+    setPagination({ filter, page: 1 });
+  }, [filter]);
+
+  const goToPage = useCallback(
+    (next: number) => {
+      setPagination({ filter, page: next });
+    },
+    [filter],
+  );
 
   const counts = useMemo(() => getMemberCounts(members), [members]);
   const visibleMembers = useMemo(
@@ -149,13 +173,19 @@ export function MemberExplorer({
           <h2 id="members-heading">{m.heading}</h2>
           <p>{m.body}</p>
         </div>
-        <Link
+        <button
+          type="button"
           className="keyboard-hint"
-          href="/?focus=1#members"
           aria-label={m.searchShortcutLabel}
+          onClick={() => {
+            const input = searchInputRef.current;
+            if (!input) return;
+            input.focus();
+            scrollIntoView(input, "center");
+          }}
         >
-          {fill(m.searchShortcut, { key: "/" })}
-        </Link>
+          {m.searchShortcutLead} <kbd dir="ltr">/</kbd> {m.searchShortcutTrail}
+        </button>
       </div>
 
       <div className="surface-card members-card">
@@ -169,7 +199,7 @@ export function MemberExplorer({
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
-                setPage(1);
+                resetToFirstPage();
               }}
               placeholder={m.searchPlaceholder}
               aria-label={m.searchLabel}
@@ -179,7 +209,7 @@ export function MemberExplorer({
                 type="button"
                 onClick={() => {
                   setQuery("");
-                  setPage(1);
+                  resetToFirstPage();
                 }}
                 aria-label={m.clearSearch}
               >
@@ -194,7 +224,7 @@ export function MemberExplorer({
               value={sort}
               onChange={(event) => {
                 setSort(event.target.value as typeof sort);
-                setPage(1);
+                resetToFirstPage();
               }}
             >
               {MEMBER_SORTS.map((option) => (
@@ -212,10 +242,7 @@ export function MemberExplorer({
               key={item}
               type="button"
               className={filter === item ? "is-active" : ""}
-              onClick={() => {
-                setFilter(item);
-                setPage(1);
-              }}
+              onClick={() => setFilter(item)}
               aria-pressed={filter === item}
             >
               {filterLabel(item, dict)}{" "}
@@ -442,7 +469,7 @@ export function MemberExplorer({
               <button
                 className="button button--secondary button--small"
                 type="button"
-                onClick={() => setPage(Math.max(1, currentPage - 1))}
+                onClick={() => goToPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
               >
                 <ChevronLeftIcon /> {dict.common.previous}
@@ -451,7 +478,7 @@ export function MemberExplorer({
               <button
                 className="button button--secondary button--small"
                 type="button"
-                onClick={() => setPage(Math.min(pageCount, currentPage + 1))}
+                onClick={() => goToPage(Math.min(pageCount, currentPage + 1))}
                 disabled={currentPage === pageCount}
               >
                 {dict.common.next} <ChevronRightIcon />
@@ -470,7 +497,6 @@ export function MemberExplorer({
                   onClick={() => {
                     setQuery("");
                     setFilter("ALL");
-                    setPage(1);
                   }}
                 >
                   {m.clearAll}

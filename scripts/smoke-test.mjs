@@ -223,6 +223,21 @@ for (const path of ["/login", "/forgot-password", "/register"]) {
     page.status === 200 && rtl && /<html[^>]*lang="ar"/.test(page.body) && arabic > 50,
     `status ${page.status}, dir rtl ${rtl}, ${arabic} Arabic letters`,
   );
+
+  // The three numbered privacy principles that used to sit beside every
+  // sign-in form were removed as design. The single privacy line under the form
+  // was deliberately kept, so this checks the panel is gone and does not
+  // accidentally take the line with it.
+  record(
+    `${path} has no privacy-principles panel`,
+    !page.body.includes("privacy-principle"),
+    "",
+  );
+  record(
+    `${path} still carries its one-line privacy notice`,
+    page.body.includes("auth-privacy"),
+    "",
+  );
 }
 
 process.stdout.write(`\n=== the private pages, after signing in ===\n`);
@@ -250,6 +265,42 @@ for (const path of ["/login", "/forgot-password"]) {
     `status ${page.status} -> ${page.location}`,
   );
 }
+
+process.stdout.write(`\n=== the dashboard controls the reader reaches ===\n`);
+const dashboard = pages.get("/") ?? "";
+
+// The three large privacy blocks were removed as design. These check the class
+// names rather than the copy: a removed string can legitimately survive
+// elsewhere ("a new private workspace" appears in the register page's invite
+// text), and what actually needs to stay gone is the element.
+record("the dashboard privacy card is gone", !dashboard.includes("privacy-card"), "");
+record("the sidebar privacy note is gone", !dashboard.includes("privacy-note"), "");
+
+// The search hint is a real key cap, and a button that puts the caret in the
+// box rather than a link that re-runs every query to get there.
+record(
+  "the search hint renders the slash in a key cap",
+  /<kbd[^>]*>\/<\/kbd>/.test(dashboard),
+  "",
+);
+record(
+  "the search hint is a button, not a link to a reloaded page",
+  /<button[^>]*class="keyboard-hint"/.test(dashboard),
+  "",
+);
+
+// Every control that means "show me this list" — the queues, the stat cards,
+// and the counted quick actions — now filters the roster in place. A surviving
+// `?filter=` link means one of them still costs a full document request, and
+// worse, that it and its neighbour behave differently.
+record(
+  "every roster filter control acts in place",
+  dashboard.includes("stat-card--button") &&
+    dashboard.includes("quick-action--button") &&
+    dashboard.includes("text-link--button") &&
+    !/\?filter=/.test(dashboard),
+  "",
+);
 
 const importPage = pages.get("/members/import") ?? "";
 record("the import page offers a file picker", /type="file"/.test(importPage), "");
@@ -365,11 +416,16 @@ record(
 );
 
 process.stdout.write(`\n=== the icons ===\n`);
-const icon = await get("/icon.svg");
-const appleIcon = await get("/apple-icon");
+// The favicon is a downscaled raster of the supplied artwork rather than the
+// vector cross the interface draws, so this asserts the route resolves to a
+// real PNG. A 404 here is the usual shape of a metadata-file conflict: two files
+// in the app directory claiming the same route build fine and then one of them
+// silently wins.
+const icon = await get("/icon.png");
+const appleIcon = await get("/apple-icon.png");
 record(
-  "the Coptic cross favicon is served as an SVG",
-  icon.status === 200 && icon.contentType.includes("svg"),
+  "the favicon is served as a PNG",
+  icon.status === 200 && icon.contentType.includes("png"),
   `status ${icon.status}, ${icon.contentType}`,
 );
 record(

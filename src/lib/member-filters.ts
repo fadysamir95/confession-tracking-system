@@ -12,6 +12,26 @@ export const MEMBER_FILTERS = [
   "NO_PHONE",
 ] as const;
 
+/**
+ * Turn a `?filter=` query value into a filter, or "all" if it is not one.
+ *
+ * This lives here rather than beside the filter state because the dashboard page
+ * needs it on the server, and a function exported from a `"use client"` module
+ * cannot be *called* from a server component — only rendered. It is pure logic
+ * with no React in it, which is exactly what this module is for.
+ *
+ * An unrecognised value falls back to "all" rather than erroring. The parameter
+ * is in the URL, which means it is user-editable, shareable, and outlives any
+ * bookmark that was saved against an older build. It selects a view; it grants
+ * nothing, so a stale one is a view that does not exist rather than a problem.
+ */
+export function parseMemberFilter(value?: string | string[]): MemberFilter {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return MEMBER_FILTERS.includes(candidate as MemberFilter)
+    ? (candidate as MemberFilter)
+    : "ALL";
+}
+
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 
 export const MEMBER_SORTS = [

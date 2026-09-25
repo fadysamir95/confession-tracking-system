@@ -44,8 +44,6 @@ const en = {
   },
 
   shell: {
-    privacyTitle: "Private workspace",
-    privacyBody: "Dates only. No confession details.",
     rolePriest: "Priest",
     roleAdmin: "Tenant administrator",
     brandLineOne: "Confession",
@@ -108,7 +106,6 @@ const en = {
   },
 
   auth: {
-    principles: "Privacy principles",
     privacyNotice:
       "This system records dates and administrative contact details only. It does not accept or store confession content.",
 
@@ -178,70 +175,6 @@ const en = {
         "The link you followed did not include a reset token. Request a new one and use the most recent email you receive.",
       requestNew: "Request a new link",
     },
-
-    /**
-     * The privacy principles, as one shared catalogue.
-     *
-     * Each sign-in and recovery screen shows three of these, and which three is
-     * a design decision rather than a translation. The same statement appearing
-     * with three different phrasings across four screens is how a translated
-     * app starts to contradict itself, so each principle is written once here
-     * and screens select from it by key.
-     */
-    principlesContent: {
-      minimalData: {
-        title: "Minimal data",
-        body: "Only names, contact details, dates, and intervals are kept.",
-      },
-      dateOnly: {
-        title: "Date-only history",
-        body: "No field exists for sins, counseling, or private notes.",
-      },
-      protected: {
-        title: "Protected access",
-        body: "Secure sessions and administrative audit events protect activity.",
-      },
-      privateByDefault: {
-        title: "Private by default",
-        body: "Your workspace is invisible to every other priest on the platform.",
-      },
-      singleUse: {
-        title: "Single use",
-        body: "A link works once, then stops working immediately.",
-      },
-      singleUseInvite: {
-        title: "Single use",
-        body: "Each invitation code works once and then expires.",
-      },
-      shortLived: {
-        title: "Short lived",
-        body: "Links expire an hour after they are issued.",
-      },
-      fullSignOut: {
-        title: "Full sign out",
-        body: "A completed reset ends every existing session on every device.",
-      },
-      noDisclosure: {
-        title: "No disclosure",
-        body: "The same reply is shown whether or not an account exists.",
-      },
-      storedHashed: {
-        title: "Stored hashed",
-        body: "Reset links are kept only as a digest, never in plain text.",
-      },
-      strongPasswords: {
-        title: "Strong passwords",
-        body: "Stored with Argon2id, never in plain text.",
-      },
-      immediateEffect: {
-        title: "Immediate effect",
-        body: "Every other session ends the moment the new password is set.",
-      },
-      thenSignIn: {
-        title: "Then sign in",
-        body: "Use your new password to return to your workspace.",
-      },
-    },
   },
 
   dashboard: {
@@ -264,9 +197,6 @@ const en = {
     dueSoonBody: "Within {count} days of the limit",
     neverRecorded: "Never recorded",
     neverRecordedBody: "No confession date on file",
-    privacyHeading: "Privacy by design",
-    privacyBody:
-      "The database has no field for confession content, sins, counseling, or private spiritual notes. Member history is stored as dates only.",
 
     stats: {
       label: "Dashboard statistics",
@@ -338,8 +268,9 @@ const en = {
   members: {
     heading: "Members",
     body: "Search, filter, and record attendance without leaving the page.",
-    searchShortcutLabel: "Search keyboard shortcut slash",
-    searchShortcut: "Press {key} to search",
+    searchShortcutLabel: "Focus the member search",
+    searchShortcutLead: "Press",
+    searchShortcutTrail: "to search",
     searchPlaceholder: "Search by name or phone number",
     searchLabel: "Search members by name or phone number",
     clearSearch: "Clear search",

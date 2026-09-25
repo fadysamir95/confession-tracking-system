@@ -23,7 +23,6 @@ export default async function LoginPage() {
       heading={t.heading}
       intro={t.intro}
       privacy={dict.auth.privacyNotice}
-      principles={["minimalData", "dateOnly", "protected"]}
       locale={locale}
       dict={dict}
       switcher={

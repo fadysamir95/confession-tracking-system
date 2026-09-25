@@ -23,7 +23,6 @@ export default async function ForgotPasswordPage() {
       heading={t.heading}
       intro={t.intro}
       privacy={t.privacy}
-      principles={["noDisclosure", "storedHashed", "fullSignOut"]}
       locale={locale}
       dict={dict}
       switcher={<Link href="/login">{t.back}</Link>}

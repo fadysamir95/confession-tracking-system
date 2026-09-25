@@ -28,6 +28,29 @@
      single source of truth. */
   --brand-accent: #e8c87a;
   --brand-accent-soft: #f3dfae;
+
+  /* Two type stacks, both made only of faces the operating system already has.
+     No web font is loaded anywhere in this project: this is a privacy product
+     that stores attendance dates and nothing else, and a request to a font CDN
+     would be the only thing about it that contacted a third party.
+
+     They are separate stacks rather than one long list, because a single list
+     resolves per character and that is the actual bug. In one list, Latin text
+     takes "Inter" and Arabic text falls through to the first face that happens
+     to carry Arabic glyphs — on Windows, "Segoe UI", a face designed for Latin
+     with an Arabic companion bolted on. The result is one screen carrying two
+     unrelated typefaces, and the Arabic looks borrowed next to the digits the
+     interface deliberately keeps Latin.
+
+     `--font-stack` is the one `body` reads, so switching language switches
+     typeface by overriding a single property. */
+  --font-latin:
+    "Inter", "Segoe UI", system-ui, -apple-system, "Noto Sans", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-arabic:
+    "Segoe UI", "Noto Sans Arabic", "Geeza Pro", "Dubai", "SF Arabic", Tahoma,
+    Arial, sans-serif;
+  --font-stack: var(--font-latin);
 }
 
 * {
@@ -36,6 +59,11 @@
 
 html {
   min-width: 320px;
+  /* Stated rather than implied. The root size is the baseline every `rem` in
+     this stylesheet is measured against, and it is the one lever the Arabic
+     rules at the end of this file pull. Percentage keeps it relative to the
+     reader's own browser default, so a larger system font still wins. */
+  font-size: 100%;
   background: var(--background);
   color-scheme: light;
   scroll-behavior: smooth;
@@ -45,20 +73,9 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--background);
-  /* A stack of faces the operating system already has, in the order that gets
-     the right one first in each place. No web font is loaded: this is a
-     privacy product that stores dates and nothing else, and a request to a
-     font CDN would be the only thing about it that phoned a third party.
-
-     The Arabic entries matter. Inter has no Arabic glyphs at all, so without
-     them an Arabic priest gets whatever the browser falls back to, which on
-     Windows is a face designed for Latin and sits visibly wrong beside the
-     Latin digits the app deliberately forces. "Segoe UI" carries Arabic on
-     Windows, "Geeza Pro" on Apple platforms, and Noto on Android and Linux. */
-  font-family:
-    "Inter", "Segoe UI", system-ui, -apple-system, "Noto Sans",
-    "Noto Sans Arabic", "Geeza Pro", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 15px;
+  font-family: var(--font-stack);
+  /* `rem`, not `px`, so that the Arabic rules scale this too. */
+  font-size: 0.9375rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -158,11 +175,16 @@ h3 {
   text-transform: uppercase;
 }
 
-/* Authentication */
+/* Authentication
+   One centred column. This was two columns, the second holding three numbered
+   privacy principles; that block was removed, and a two-column grid with one
+   child would have parked a 520px form against the left edge of a wide screen.
+   Centring is the layout the remaining content actually wants. */
 .auth-page {
   display: grid;
   min-height: 100dvh;
-  grid-template-columns: minmax(440px, 0.9fr) minmax(460px, 1.1fr);
+  place-items: center;
+  padding: clamp(24px, 5vw, 64px);
   background: var(--surface);
 }
 
@@ -466,44 +488,6 @@ html[data-preloader="seen"] .preloader {
   line-height: 1.55;
 }
 
-.auth-aside {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 40px;
-  padding: clamp(56px, 8vw, 120px);
-  color: #eef8f5;
-  background: #143d37;
-}
-
-.auth-aside > div {
-  display: grid;
-  max-width: 520px;
-  grid-template-columns: 44px 1fr;
-  column-gap: 16px;
-}
-
-.auth-aside span {
-  grid-row: span 2;
-  padding-top: 3px;
-  color: #86b8ad;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-.auth-aside h2 {
-  margin-bottom: 7px;
-  color: #fff;
-  font-size: 1.08rem;
-}
-
-.auth-aside p {
-  margin: 0;
-  color: #b8cdc8;
-  font-size: 0.9rem;
-}
-
 /* App shell */
 .app-shell {
   min-height: 100dvh;
@@ -579,40 +563,6 @@ html[data-preloader="seen"] .preloader {
   display: grid;
   gap: 14px;
   margin-top: auto;
-}
-
-.privacy-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 13px;
-  border: 1px solid #d9e7e3;
-  border-radius: 10px;
-  color: #31544c;
-  background: #f1f8f6;
-}
-
-.privacy-note svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
-  margin-top: 1px;
-}
-
-.privacy-note div {
-  display: flex;
-  flex-direction: column;
-}
-
-.privacy-note strong {
-  font-size: 0.74rem;
-}
-
-.privacy-note span {
-  margin-top: 2px;
-  color: #668079;
-  font-size: 0.65rem;
-  line-height: 1.4;
 }
 
 .sidebar__user {
@@ -803,6 +753,39 @@ html[data-preloader="seen"] .preloader {
 .text-link:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* `.text-link` on a <button>. The attention queues' "view all" filters the
+   roster in place rather than following a link, and a <button> would otherwise
+   arrive carrying the platform's own grey chrome, which makes a link-shaped
+   label read as a control of a different kind. Reset to the link's own
+   appearance, and keep the focus ring the reset would otherwise discard. */
+
+.text-link--button {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: start;
+  cursor: pointer;
+}
+
+.text-link--button:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* The stat cards and the counted quick actions filter the roster where the
+   reader already is, so they are <button>s wearing the card styling they had as
+   <Link>s. The global reset already gives buttons `font: inherit` and
+   `color: inherit`; what is left that the card was never drawn with is centred
+   text and a non-pointing cursor. Both would otherwise be the only visible
+   difference between a card that navigates and one that filters in place. */
+
+.stat-card--button,
+.quick-action--button {
+  text-align: start;
+  cursor: pointer;
 }
 
 /* Shared cards and status */
@@ -1812,9 +1795,11 @@ dialog::backdrop {
   font-size: 0.68rem;
 }
 
+/* A single full-width row. This held the recent-activity list beside the
+   "privacy by design" card; with the card gone the grid would have left an
+   empty second column, so recent activity now takes the whole width. */
 .dashboard-lower-grid {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
   gap: 11px;
   margin-bottom: 32px;
 }
@@ -1823,8 +1808,7 @@ dialog::backdrop {
   padding: 15px;
 }
 
-.recent-card__header h2,
-.privacy-card h2 {
+.recent-card__header h2 {
   margin-bottom: 3px;
   font-size: 0.94rem;
 }
@@ -1889,38 +1873,6 @@ dialog::backdrop {
   margin: 18px 0 4px;
   color: var(--text-muted);
   font-size: 0.75rem;
-}
-
-.privacy-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
-  padding: 18px;
-  border-color: #d5e5e0;
-  background: #f2f8f6;
-}
-
-.privacy-card__icon {
-  display: inline-grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  place-items: center;
-  border-radius: 9px;
-  color: var(--primary);
-  background: #dfeeea;
-}
-
-.privacy-card__icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.privacy-card p {
-  margin: 0;
-  color: #58716a;
-  font-size: 0.72rem;
-  line-height: 1.55;
 }
 
 /* Settings, security, audit, and lifecycle */
@@ -2680,6 +2632,10 @@ dialog::backdrop {
 }
 
 /* Member list */
+/* Where the attention queues send the reader. On a wide screen there is no
+   sticky chrome, so a small offset is enough to keep the heading off the very
+   top edge; the mobile override below raises it to clear the sticky header. */
+
 .members-section {
   scroll-margin-top: 20px;
 }
@@ -2688,20 +2644,46 @@ dialog::backdrop {
   margin-bottom: 12px;
 }
 
+/* The search hint is a button rather than a link, because pressing it should put
+   the caret in the search box rather than reload the dashboard to achieve the
+   same thing a round trip later. It is styled flat: a button's own chrome would
+   make a piece of hint text read as a control the reader is being asked to
+   operate, when the control it describes is the keyboard. */
+
 .keyboard-hint {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 2px;
+  border: 0;
   color: var(--text-muted);
-  font-size: 0.65rem;
+  background: none;
+  font-size: 0.72rem;
+  cursor: pointer;
 }
 
+.keyboard-hint:hover,
+.keyboard-hint:focus-visible {
+  color: var(--text-soft);
+}
+
+/* The key cap. `min-width` keeps every cap the same width so a row of them
+   lines up, and `unicode-bidi: isolate` stops the slash being reordered by the
+   bidirectional algorithm inside an Arabic sentence. */
+
 kbd {
+  min-width: 1.6em;
   padding: 1px 5px;
   border: 1px solid var(--border-strong);
-  border-bottom-width: 2px;
+  border-block-end-width: 2px;
   border-radius: 4px;
   color: var(--text-soft);
   background: var(--surface);
   font: inherit;
-  font-size: 0.62rem;
+  font-size: 0.95em;
+  line-height: 1.35;
+  text-align: center;
+  unicode-bidi: isolate;
 }
 
 .members-card {
@@ -3114,10 +3096,6 @@ kbd {
   .attention-list li:nth-last-child(-n + 2) {
     border-bottom: 0;
   }
-
-  .dashboard-lower-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 760px) {
@@ -3436,14 +3414,6 @@ kbd {
 }
 
 @media (max-width: 900px) {
-  .auth-page {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-aside {
-    display: none;
-  }
-
   .auth-panel {
     width: min(100%, 560px);
     min-height: 100dvh;
@@ -3472,6 +3442,13 @@ kbd {
     border-bottom: 1px solid var(--border);
     background: rgb(251 252 252 / 96%);
     backdrop-filter: blur(10px);
+  }
+
+  /* The header above is pinned to the top of the viewport from here down, so a
+     scroll that stops 20px from the top would deliver the roster's heading
+     underneath it. Clears the 64px header and leaves a little air. */
+  .members-section {
+    scroll-margin-top: 78px;
   }
 
   .brand--compact {
@@ -3511,7 +3488,7 @@ kbd {
 
 @media (max-width: 620px) {
   body {
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 
   .main-content {
@@ -3584,6 +3561,36 @@ kbd {
    whenever `dir` is `rtl`. A member's own name is never styled by these rules.
    =========================================================================== */
 
+/* Arabic type, on <html> rather than on a descendant.
+
+   Two separate things are wrong with Arabic set at Latin metrics, and they are
+   fixed at two different levels.
+
+   Size is set on the root, because this stylesheet is written almost entirely in
+   `rem` — 140 declarations against 2 in `px` — and `rem` resolves against the
+   root font size. A `body`-level bump would scale the handful of elements that
+   inherit a size and leave every component that sets its own `rem` exactly
+   where it was, which is the opposite of a fix.
+
+   The bump is 5%. Arabic script fills less of its em box than Latin does, so at
+   an identical `font-size` the same words come out visibly smaller, and the
+   joined letterforms need air above and below. 5% is enough to read as a
+   deliberate Arabic setting rather than as a bug, and small enough that the
+   eight-column roster — the widest thing in the interface — still fits, because
+   `.members-table-wrap` scrolls horizontally rather than crushing its columns.
+
+   `line-height` goes up further, to 1.7, and that one costs nothing
+   horizontally. Arabic has no ascender-to-descender word-shape contrast to
+   anchor a line, and marks stack above letters; at Latin leading, the marks on
+   a line collide with the line above. Leading is the single highest-value thing
+   to change about Arabic here. */
+
+[dir="rtl"] {
+  --font-stack: var(--font-arabic);
+  font-size: 105%;
+  line-height: 1.7;
+}
+
 [dir="rtl"] {
   /* Arabic has no letter case, so `text-transform: uppercase` does nothing,
      and it is paired with `letter-spacing` on every micro-label in this
@@ -3592,8 +3599,8 @@ kbd {
      inserts a gap *between* those joined forms. The result reads as
      individual letters rather than as a word, which is the single most
      recognisable sign of a layout that was designed in one language and
-     labelled in another. Tracking is dropped, weight carries the emphasis
-     instead, and the labels gain a little size to stay legible. */
+     labelled in another. Tracking is dropped and weight carries the emphasis
+     instead. */
   .eyebrow,
   .language-switcher__label,
   .confirm-date span,

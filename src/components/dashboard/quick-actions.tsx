@@ -14,6 +14,7 @@ import {
   type RecordTarget,
 } from "@/components/members/record-confession-dialog";
 import { useDashboardFeedback } from "@/components/dashboard/dashboard-feedback";
+import { useMemberFilter } from "@/components/dashboard/member-filter-context";
 
 export function QuickActions({
   members,
@@ -33,6 +34,7 @@ export function QuickActions({
   dict: Dictionary;
 }) {
   const showMessage = useDashboardFeedback();
+  const { goToFilter } = useMemberFilter();
   const pickerRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -113,20 +115,28 @@ export function QuickActions({
             <small>{q.searchBody}</small>
           </span>
         </Link>
-        <Link className="quick-action quick-action--count" href="/?filter=OVERDUE#members">
+        <button
+          className="quick-action quick-action--count quick-action--button"
+          type="button"
+          onClick={() => goToFilter("OVERDUE")}
+        >
           <span>
             <strong>{q.viewOverdue}</strong>
             <small>{q.viewOverdueBody}</small>
           </span>
           <b>{formatNumber(overdueCount, locale)}</b>
-        </Link>
-        <Link className="quick-action quick-action--count" href="/?filter=DUE_SOON#members">
+        </button>
+        <button
+          className="quick-action quick-action--count quick-action--button"
+          type="button"
+          onClick={() => goToFilter("DUE_SOON")}
+        >
           <span>
             <strong>{q.viewDueSoon}</strong>
             <small>{q.viewDueSoonBody}</small>
           </span>
           <b>{formatNumber(dueSoonCount, locale)}</b>
-        </Link>
+        </button>
       </div>
 
       <dialog

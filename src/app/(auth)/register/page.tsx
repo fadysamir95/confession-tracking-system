@@ -50,7 +50,6 @@ export default async function RegisterPage({
           : t.introNone
       }
       privacy={dict.auth.privacyNotice}
-      principles={["privateByDefault", "dateOnly", "singleUseInvite"]}
       locale={locale}
       dict={dict}
       switcher={
