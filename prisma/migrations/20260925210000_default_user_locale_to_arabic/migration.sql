@@ -1,0 +1,23 @@
+-- ===========================================================================
+-- Default the interface language to Arabic
+-- ===========================================================================
+--
+-- This product is for Coptic Orthodox priests, and the language it ships in is
+-- Arabic. The previous default of "en" meant every new account opened on a
+-- screen in the wrong language, with the right one buried in a settings page
+-- that a priest might never visit.
+--
+-- Only the DEFAULT is changed. Existing rows keep whatever they already hold,
+-- because that value is a recorded preference rather than a leftover: a priest
+-- who chose English and signed in on a new device should not be switched to
+-- Arabic by a deployment. `resolveLocale` in src/lib/i18n.ts treats any value
+-- it does not recognise as Arabic, so the worst outcome of a stale or
+-- hand-edited row is the primary language, never a broken screen.
+--
+-- The same change was made in prisma/seed.ts, so a freshly seeded environment
+-- and a freshly registered account agree.
+--
+-- This table is deliberately outside Row-Level Security (see the RLS
+-- migration): identity-level preferences have to be readable before a tenant is
+-- known, which is what lets the sign-in screen render in the reader's language.
+ALTER TABLE "User" ALTER COLUMN "locale" SET DEFAULT 'ar';

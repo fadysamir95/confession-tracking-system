@@ -1,0 +1,36 @@
+# dependencies
+/node_modules
+
+# Next.js
+/.next
+/out
+
+# production
+/build
+/dist
+
+# local data and secrets
+/.env
+/.env.local
+/.env.*.local
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/*.db-shm
+/prisma/*.db-wal
+/backups
+
+# generated Prisma client
+/src/generated/prisma
+
+# test and tooling output
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+*.log
+
+# operating system / editor
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json

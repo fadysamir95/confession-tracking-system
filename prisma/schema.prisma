@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // The application connects as a restricted role that owns nothing and cannot
+  // bypass Row-Level Security, so the RLS policies are a real boundary and not
+  // decoration. `directUrl` is the owner role and is used only by migrations.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+/// A global human identity. Deliberately NOT the security boundary: a person may
+/// hold memberships in several tenants, and permissions come from those
+/// memberships rather than from a column on the account.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  /// Per-user interface language, stored per user and never globally.
+  ///
+  /// The default is Arabic because that is the language this product is for; an
+  /// English default would mean every account starts in the wrong language with
+  /// a preference buried in settings. `resolveLocale` in `src/lib/i18n.ts` is
+  /// the only thing that reads this column, and it treats any value it does not
+  /// recognise as Arabic, so a stale or hand-edited row degrades to the primary
+  /// language rather than to a broken screen.
+  locale       String   @default("ar")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions       Session[]
+  memberships    TenantMembership[]
+  passwordResets PasswordResetToken[]
+  invitesCreated InviteCode[]         @relation("InviteCreator")
+  auditLogs      AuditLog[]
+}
+
+/// The isolation boundary. One priest, or one church, depending on how it is used.
+model Tenant {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  suspendedAt DateTime?
+
+  memberships TenantMembership[]
+  settings    TenantSettings?
+  members     Member[]
+  records     ConfessionRecord[]
+  auditLogs   AuditLog[]
+  invites     InviteCode[]
+}
+
+/// The authorization join. Role lives here, never on User, so that adding a
+/// church with several priests later needs no schema redesign.
+model TenantMembership {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      String   @default("PRIEST")
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  records ConfessionRecord[]
+
+  // Per-tenant uniqueness, and the target of the composite foreign key from
+  // ConfessionRecord: it makes it impossible to attribute a recording to
+  // somebody who is not a member of that tenant.
+  @@unique([tenantId, userId])
+  @@index([userId])
+}
+
+/// Replaces the previous global `AppSetting` singleton. Per-tenant from the very
+/// first migration, so two priests can never share one settings row.
+model TenantSettings {
+  tenantId             String   @id
+  defaultIntervalDays  Int      @default(30)
+  dueSoonThresholdDays Int      @default(7)
+  timezone             String   @default("Africa/Cairo")
+  dateFormat           String   @default("DD/MM/YYYY")
+  whatsappCountryCode  String   @default("20")
+  whatsappTemplate     String
+  updatedAt            DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Member {
+  id                     String    @id @default(cuid())
+  tenantId               String
+  name                   String
+  nameNormalized         String
+  phone                  String?
+  phoneNormalized        String?
+  lastConfessionDate     String?
+  confessionIntervalDays Int?
+  administrativeNote     String?
+  archivedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  records ConfessionRecord[]
+
+  // Enables the composite foreign key below. A ConfessionRecord must reference
+  // (tenantId, id) together, so a bug cannot attach tenant A's record to
+  // tenant B's member; the database rejects it.
+  @@unique([tenantId, id])
+  // Name and phone uniqueness is a per-tenant rule, not a global one: two
+  // different tenants may legitimately hold the same person.
+  @@unique([tenantId, nameNormalized, phoneNormalized])
+  @@index([tenantId, archivedAt])
+  @@index([tenantId, nameNormalized])
+  @@index([tenantId, lastConfessionDate])
+}
+
+model ConfessionRecord {
+  id             String   @id @default(cuid())
+  tenantId       String
+  memberId       String
+  confessionDate String
+  recordedById   String
+  createdAt      DateTime @default(now())
+
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member     Member           @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Cascade)
+  recordedBy TenantMembership @relation(fields: [tenantId, recordedById], references: [tenantId, userId], onDelete: Restrict)
+
+  @@unique([tenantId, memberId, confessionDate])
+  @@index([tenantId, confessionDate])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  action    String
+  userId    String?
+  memberId  String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // No foreign key on memberId on purpose. Permanent deletion nulls it out, and
+  // a composite foreign key cannot SET NULL because tenantId is NOT NULL. This
+  // column is a historical pointer, not a live reference; tenant scoping is
+  // enforced by Row-Level Security and by every write path.
+  @@index([tenantId, createdAt])
+  @@index([tenantId, memberId])
+  @@index([userId])
+}
+
+model Session {
+  id         String   @id
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Platform-issued onboarding credential. A code with no tenant provisions a
+/// brand new tenant for a new priest; a code bound to a tenant adds a member to
+/// that existing tenant.
+model InviteCode {
+  id          String    @id @default(cuid())
+  codeHash    String    @unique
+  role        String    @default("PRIEST")
+  tenantId    String?
+  tenantName  String?
+  email       String?
+  maxUses     Int       @default(1)
+  usedCount   Int       @default(0)
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  tenant    Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([expiresAt])
+}
+
+model AuthThrottle {
+  key             String    @id
+  failureCount    Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+}

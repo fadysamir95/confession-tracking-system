@@ -1,0 +1,169 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import type { MemberStatus } from "@/lib/constants";
+import { formatDate, type SupportedDateFormat } from "@/lib/dates";
+import type { Dictionary } from "@/lib/dictionaries/en";
+import { fill, formatPlural, type Locale } from "@/lib/i18n";
+import type { DashboardMember } from "@/lib/member-view-types";
+import { CheckIcon, ExternalLinkIcon } from "@/components/ui/icons";
+import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  RecordConfessionDialog,
+  type RecordTarget,
+} from "@/components/members/record-confession-dialog";
+import { useDashboardFeedback } from "@/components/dashboard/dashboard-feedback";
+
+/**
+ * The three attention lists share one phrase per status rather than each
+ * building its own sentence, so a status cannot end up reading one way in the
+ * card and another way in the filter chip.
+ */
+const EMPTY_BY_STATUS = {
+  OVERDUE: "emptyOverdue",
+  DUE_SOON: "emptyDueSoon",
+  NEVER_RECORDED: "emptyNeverRecorded",
+} as const;
+
+function remainingLabel(
+  member: DashboardMember,
+  locale: Locale,
+  dict: Dictionary,
+): string {
+  if (member.status === "OVERDUE") {
+    return fill(dict.phrases.overdue, {
+      days: formatPlural(member.daysOverdue, locale, dict.days),
+    });
+  }
+  if (member.status === "DUE_SOON" && member.daysRemaining !== null) {
+    return fill(dict.phrases.dueIn, {
+      days: formatPlural(member.daysRemaining, locale, dict.days),
+    });
+  }
+  return dict.dashboard.attention.noAttendanceDate;
+}
+
+export function AttentionSection({
+  title,
+  description,
+  status,
+  members,
+  dateFormat,
+  today,
+  allHref,
+  locale,
+  dict,
+}: {
+  title: string;
+  description: string;
+  status: MemberStatus;
+  members: DashboardMember[];
+  dateFormat: SupportedDateFormat;
+  today: string;
+  allHref: string;
+  locale: Locale;
+  dict: Dictionary;
+}) {
+  const showMessage = useDashboardFeedback();
+  const [recordTarget, setRecordTarget] = useState<RecordTarget | null>(null);
+
+  function targetFor(member: DashboardMember): RecordTarget {
+    return {
+      id: member.id,
+      name: member.name,
+      lastConfessionDate: member.lastConfessionDate,
+      nextDueDate: member.nextDueDate,
+      today,
+      dateFormat,
+    };
+  }
+
+  return (
+    <section className={`attention-card attention-card--${status.toLowerCase()}`}>
+      <div className="attention-card__header">
+        <div>
+          <div className="attention-card__title-row">
+            <span className="attention-card__indicator" aria-hidden="true" />
+            <h3>{title}</h3>
+            <span className="count-pill">{members.length}</span>
+          </div>
+          <p>{description}</p>
+        </div>
+        <Link className="text-link" href={allHref}>
+          {dict.common.viewAll}
+        </Link>
+      </div>
+
+      {members.length ? (
+        <ul className="attention-list">
+          {members.map((member) => (
+            <li key={member.id}>
+              <div className="attention-person">
+                <span className="avatar avatar--small" aria-hidden="true">
+                  {member.name.slice(0, 1).toUpperCase()}
+                </span>
+                <div>
+                  <strong>{member.name}</strong>
+                  <span>
+                    {status === "NEVER_RECORDED"
+                      ? dict.dashboard.attention.noConfessionDate
+                      : fill(dict.phrases.lastPrefix, {
+                          date: formatDate(
+                            member.lastConfessionDate,
+                            dateFormat,
+                            locale,
+                            dict.dates.noRecord,
+                          ),
+                        })}
+                  </span>
+                </div>
+              </div>
+              <div className="attention-meta">
+                <span className="attention-meta__label">
+                  {remainingLabel(member, locale, dict)}
+                </span>
+                <div className="attention-actions">
+                  {member.whatsappUrl ? (
+                    <a
+                      className="icon-button"
+                      href={member.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={fill(dict.dashboard.attention.whatsappLabel, {
+                        name: member.name,
+                      })}
+                      title={dict.dashboard.attention.whatsappTooltip}
+                    >
+                      <ExternalLinkIcon />
+                    </a>
+                  ) : null}
+                  <button
+                    className="button button--small button--secondary"
+                    type="button"
+                    onClick={() => setRecordTarget(targetFor(member))}
+                  >
+                    <CheckIcon /> {dict.dashboard.attention.record}
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="attention-empty">
+          <StatusBadge status={status} dict={dict} />
+          <p>{dict.dashboard.attention[EMPTY_BY_STATUS[status as keyof typeof EMPTY_BY_STATUS]]}</p>
+        </div>
+      )}
+
+      <RecordConfessionDialog
+        target={recordTarget}
+        onClose={() => setRecordTarget(null)}
+        onRecorded={showMessage}
+        locale={locale}
+        dict={dict}
+      />
+    </section>
+  );
+}

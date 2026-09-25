@@ -1,0 +1,31 @@
+# Normalise line endings in the repository, not on someone's disk.
+#
+# Written before the first commit on purpose. Once history exists,
+# renormalising touches every file in one enormous diff, which is the worst
+# possible time to discover that two developers are producing different bytes
+# for the same source file.
+
+# Text files: stored with LF, checked out with whatever the platform uses.
+* text=auto eol=lf
+
+# The one place where the bytes are the behaviour.
+#
+# A migration is applied by the database, and a stray carriage return inside a
+# statement is the kind of thing that fails on one machine and not another. SQL
+# is pinned to LF outright, with no eol override, so the working copy matches
+# the repository.
+*.sql text eol=lf
+
+# Lockfiles are generated and diffed far more than they are edited. `npm ci`
+# resolves them from the lock, and a line-ending change in it is noise.
+package-lock.json text eol=lf
+
+# Binary. Never line-ending translated, never diffed.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary

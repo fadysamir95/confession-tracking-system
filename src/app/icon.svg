@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Confession Attendance</title>
+  <rect width="32" height="32" rx="7" fill="#176b5d" />
+  <g fill="#e8c87a">
+    <path d="M13.5 1H18.5L19.2 31H12.8Z" />
+    <path d="M8 5.5H24Q22 7.5 24 9.5H8Q10 7.5 8 5.5Z" />
+    <path d="M4 13H28Q25.5 15.25 28 17.5H4Q6.5 15.25 4 13Z" />
+    <path d="M1 23H31Q28 25.5 31 28H1Q4 25.5 1 23Z" />
+  </g>
+</svg>
