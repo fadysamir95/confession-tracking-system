@@ -1,40 +1,33 @@
-import type { SVGProps } from "react";
+import type { ImgHTMLAttributes } from "react";
 
 /**
- * The Coptic cross, drawn rather than photographed so it stays razor sharp at
- * every size from a 16px browser tab to a 512px app tile.
+ * The mark beside the app name: the parish's own logo, from `assets/logo.png`,
+ * committed at `public/brand-mark.png` as a 256px high-quality downscale of the
+ * 1254px original. 256px is about 3.3x the largest box the mark is ever painted
+ * into — the 78px preloader tile — so it stays sharp on a retina screen without
+ * shipping 980KB of pixels that no display can resolve.
  *
- * The silhouette carries the three features that make the shape recognisable as
- * a Coptic cross rather than a generic Latin one: three crossbars of increasing
- * width (titulus, arm, footrest), a shaft that flares toward its base, and
- * crossbar ends that bow inward instead of ending square.
+ * This replaces a hand-drawn inline SVG of a Coptic cross. The vector was the
+ * right call for as long as the mark was a placeholder: it was exact at any
+ * size and it recoloured with `currentColor`. Neither advantage survives a real
+ * logo, and both cost something — a raster cannot inherit the theme, and it
+ * cannot be restyled if the parish later wants the mark in its own ink on a
+ * surface it was not drawn for. The supplied artwork is the single source of
+ * truth now; the vector is deleted rather than left as dead code.
  *
- * The path is expressed in a 64x64 box and drawn in a single fill so it can be
- * recoloured by CSS with `currentColor` and reused on light and dark surfaces.
+ * `public/` rather than a hashed import: the mark is decorative, and a stable
+ * URL that the smoke test can assert on is worth more here than a build-hash
+ * dependency in four call sites.
+ *
+ * A plain `<img>` rather than `next/image` — the optimiser's responsive pipeline
+ * and its extra request have nothing to offer a mark that is always decorative
+ * and never larger than 78 CSS px. The `width`/`height` below are the file's
+ * intrinsic size; CSS stretches it to the tile, and every tile is fixed, so
+ * nothing shifts on load.
  */
-export const COPTIC_CROSS_PATH = [
-  // Shaft: a touch wider at the foot than at the head, as on the traditional
-  // form, which gives the whole mark a sense of standing rather than hanging.
-  "M28.5 4H35.5L36.8 60H27.2Z",
-  // Titulus — the narrow top bar.
-  "M20 13H44Q41 15.5 44 18H20Q23 15.5 20 13Z",
-  // The main crossbar.
-  "M13 25H51Q47 28 51 31H13Q17 28 13 25Z",
-  // Footrest — the wide base bar.
-  "M9 48H55Q50 51.5 55 55H9Q14 51.5 9 48Z",
-].join("");
-
-export function BrandMark({ className, ...props }: SVGProps<SVGSVGElement>) {
+export function BrandMark(props: ImgHTMLAttributes<HTMLImageElement>) {
   return (
-    <svg
-      viewBox="0 0 64 64"
-      className={className}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-      {...props}
-    >
-      <path d={COPTIC_CROSS_PATH} fill="currentColor" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element -- see the note above
+    <img src="/brand-mark.png" alt="" width={256} height={256} {...props} />
   );
 }

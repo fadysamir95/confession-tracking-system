@@ -434,6 +434,23 @@ record(
   `status ${appleIcon.status}, ${appleIcon.contentType}`,
 );
 
+process.stdout.write(`\n=== the brand mark ===\n`);
+// The in-app mark is the supplied artwork at a stable URL under public/, not a
+// hashed import and not the inline vector it replaced. Both halves are asserted:
+// the file being served proves nothing on its own, because a component still
+// drawing the old SVG would pass it while showing no logo at all.
+const mark = await get("/brand-mark.png");
+record(
+  "the in-app brand mark is served as a PNG",
+  mark.status === 200 && mark.contentType.includes("png"),
+  `status ${mark.status}, ${mark.contentType}`,
+);
+record(
+  "the sign-in shell draws the mark as an image, not an inline SVG",
+  /class="brand__mark[^"]*"[^>]*>\s*<img[^>]+brand-mark\.png/.test(loginPage.body),
+  'expected an <img src="/brand-mark.png"> inside .brand__mark',
+);
+
 const failures = checks.filter((check) => !check.ok);
 process.stdout.write(`\n${checks.length - failures.length}/${checks.length} checks passed.\n`);
 if (failures.length > 0) {
