@@ -292,8 +292,8 @@ strand the user with no way in and no error to act on.
 npm run check
 ```
 
-That runs linting, type checking, the test suite, and the production build in
-sequence. Individually:
+That runs linting, type checking, the script checks, the test suite, and the
+production build in sequence. Individually:
 
 ```bash
 npm run lint
@@ -310,6 +310,19 @@ language on it. The check reads every Arabic string in the tree, reports anythin
 from a script that has no business being here, and reports any Latin word it has
 not been shown and accepted. It is cheap, and it is the only thing standing
 between a bad merge and a translated screen.
+
+`npm run check:secrets` looks for the shapes a credential takes — an inline
+password in a connection string, a provider token, a private key block — across
+everything git considers part of the project. It exists because the requirement
+is that no secret ever reaches the repository, and that is worth a check that
+runs on every change rather than a promise made once.
+
+**On Windows, stop `npm run dev` before running `npm run check`.** The build
+begins with `prisma generate`, which has to replace the Prisma query engine
+binary; a running server holds that file open and the replacement fails with
+`EPERM: operation not permitted, rename ... query_engine-...dll.node`. The build
+is otherwise unaffected, and nothing is wrong with the project — but the error
+reads like a corruption and is not one.
 
 `npm test` rebuilds the test database **from the real migration history** via
 `prisma migrate reset`, then runs Vitest. It does not touch the development
