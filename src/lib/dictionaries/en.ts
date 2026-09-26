@@ -330,6 +330,26 @@ const en = {
     remind: "Remind",
     remindLabel: "Remind {name} using the saved message",
     remindTooltip: "Open WhatsApp with the saved reminder",
+    /**
+     * The reminder, once it has been used.
+     *
+     * The wording has to make two things true at once: that the message has
+     * already gone out, and that the button is still live. "Reminded" alone
+     * would read as a past tense that disables the control, and a priest who
+     * has decided to ask again — because nobody answered, or because a month
+     * passed, or because they were not sure it went — must not be told by the
+     * interface that they may not.
+     */
+    remindAgain: "Remind again",
+    remindedShort: "Reminded",
+    remindedOn: "Last reminded {date}. Send again using the saved message.",
+    remindedTooltip: "Reminder opened on {date} — this opens it again",
+    extend: "Extend duration",
+    extendTooltip: "Give more time, and take them off the past-the-limit list",
+    extendMenu: "How much longer",
+    extendedUntil: "Until {date}",
+    undoExtension: "Take back the extension",
+    undoExtensionLabel: "Take back the extension for {name}",
     whatsapp: "WhatsApp",
     whatsappLabel: "Open WhatsApp for {name} with no message",
     whatsappTooltip: "Open WhatsApp with no message",
@@ -694,6 +714,8 @@ const en = {
     recorded: "Confession recorded.",
     archived: "Member archived.",
     restored: "Member restored.",
+    extended: "Duration extended by {days} days. They will be due again then.",
+    extensionRemoved: "Extension taken back.",
     deleted: "Member permanently deleted.",
     passwordChanged: "Password changed. Other sessions were signed out.",
     sessionRevoked: "Session revoked.",
@@ -705,9 +727,11 @@ const en = {
 
   errors: {
     invalidDate: "Invalid date.",
+    extensionNotOffered: "Choose one of the offered lengths: {list} days.",
     futureDate: "Confession date cannot be in the future.",
     archivedDuplicate:
       "A matching archived member already exists. Restore or edit that record.",
+    noExtensionToUndo: "This member has no extension to take back.",
     activeDuplicate: "A member with this name and phone number already exists.",
     cannotAdd: "You cannot add members.",
     cannotEdit: "You cannot edit members.",
@@ -729,6 +753,8 @@ const en = {
     updateMember: "Unable to update member. Please try again.",
     recordConfession: "Unable to record confession. Please try again.",
     archiveMember: "Unable to archive member. Please try again.",
+    extendMember: "Unable to extend the duration. Please try again.",
+    undoExtension: "Unable to take back the extension. Please try again.",
     restoreMember: "Unable to restore member. Please try again.",
     deleteMember: "Unable to permanently delete member. Please try again.",
     invalidCredentials:

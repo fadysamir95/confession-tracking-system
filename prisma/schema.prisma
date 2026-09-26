@@ -106,6 +106,26 @@ model Member {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
+  /// When the reminder link was last opened for this member, so the priest can
+  /// see at a glance who has already been asked to return. Cleared when a
+  /// confession is recorded: a new date opens a new period, and a marker left
+  /// over from the last one would answer a question nobody is asking.
+  ///
+  /// When, not whether. The message itself is never stored — it lives in the
+  /// recipient's WhatsApp, not here — so this column records that an opening was
+  /// recorded, nothing about its content.
+  reminderSentAt DateTime?
+
+  /// A one-off grace deadline, as a tenant-timezone calendar date to match
+  /// `lastConfessionDate`.
+  ///
+  /// A floor on the next due date rather than a replacement for it: it can only
+  /// ever push the date out, and once it passes the ordinary limit applies again
+  /// and the member returns to the overdue list on their own. Storing a date
+  /// rather than a day count is what makes that automatic — nothing has to
+  /// expire a row or run a job to notice the grace is over.
+  extendedUntil String?
+
   tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   records ConfessionRecord[]
 
@@ -119,6 +139,11 @@ model Member {
   @@index([tenantId, archivedAt])
   @@index([tenantId, nameNormalized])
   @@index([tenantId, lastConfessionDate])
+  // The overdue queue is not sorted by these columns — it is sorted by
+  // `lastConfessionDate`, which is already indexed — but the roster filter
+  // reads both, and a tenant's whole dashboard is a tenant-scoped scan.
+  @@index([tenantId, reminderSentAt])
+  @@index([tenantId, extendedUntil])
 }
 
 model ConfessionRecord {

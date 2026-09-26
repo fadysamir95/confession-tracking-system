@@ -7,6 +7,7 @@ import { CAPABILITIES } from "@/lib/constants";
 import { getTodayInTimeZone } from "@/lib/dates";
 import { getRequestLocale } from "@/lib/i18n-server";
 import {
+  extendMemberSchema,
   firstValidationFailure,
   formDataToObject,
   memberCreateSchema,
@@ -18,9 +19,12 @@ import { requireCapability } from "@/server/auth";
 import {
   archiveMember,
   createMember,
+  extendMember,
+  markReminderSent,
   permanentlyDeleteMember,
   recordConfession,
   restoreMember,
+  undoExtension,
   updateMember,
 } from "@/server/member-service";
 import { getSettings } from "@/server/settings";
@@ -112,6 +116,72 @@ export async function recordConfessionAction(input: {
     return confirmationState("recorded");
   } catch (error) {
     return failureState(error, "recordConfession");
+  }
+}
+
+/**
+ * Note that the reminder link was opened for a member.
+ *
+ * Deliberately returns nothing and shows nothing. The click that calls this
+ * also opens WhatsApp in a new tab, so by the time the round trip finishes the
+ * priest is looking at a conversation, not at this page — and the one thing
+ * that could usefully be said is "reminder sent", which nobody can know. The
+ * link is not blocked on it either way: a marker that failed to save is a
+ * cosmetic loss, and delaying or suppressing the message to protect a cosmetic
+ * loss would trade the thing that matters for the thing that does not.
+ *
+ * So a failure here is swallowed, deliberately and on purpose. The alternative
+ * is a red toast appearing on a screen the priest has already left, telling
+ * them about a problem with something they do not care about.
+ */
+export async function markReminderSentAction(memberId: string): Promise<void> {
+  try {
+    const context = await requireCapability(CAPABILITIES.MANAGE_MEMBERS);
+    const parsedId = memberIdSchema.safeParse(memberId);
+    if (!parsedId.success) return;
+
+    await markReminderSent(context, parsedId.data);
+    refreshMemberViews();
+  } catch {
+    // As above: the message is already on its way. See the note above.
+  }
+}
+
+export async function extendMemberAction(input: {
+  memberId: string;
+  days: number;
+}): Promise<ActionState> {
+  const context = await requireCapability(CAPABILITIES.MANAGE_MEMBERS);
+  const parsed = extendMemberSchema.safeParse(input);
+  if (!parsed.success) {
+    return validationFailure(firstValidationFailure(parsed.error));
+  }
+
+  try {
+    await extendMember(
+      context,
+      parsed.data.memberId,
+      parsed.data.days,
+      await tenantToday(context.tenant.id),
+    );
+    refreshMemberViews();
+    return confirmationState("extended", { days: parsed.data.days });
+  } catch (error) {
+    return failureState(error, "extendMember");
+  }
+}
+
+export async function undoExtensionAction(memberId: string): Promise<ActionState> {
+  const context = await requireCapability(CAPABILITIES.MANAGE_MEMBERS);
+  const parsedId = memberIdSchema.safeParse(memberId);
+  if (!parsedId.success) return refusalState("MEMBER_NOT_FOUND");
+
+  try {
+    await undoExtension(context, parsedId.data);
+    refreshMemberViews();
+    return confirmationState("extensionRemoved");
+  } catch (error) {
+    return failureState(error, "undoExtension");
   }
 }
 

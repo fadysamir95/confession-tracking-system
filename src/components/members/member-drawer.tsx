@@ -11,14 +11,13 @@ import type { MemberDetails } from "@/lib/member-view-types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   ArchiveIcon,
-  BellIcon,
   CheckIcon,
   CloseIcon,
   EditIcon,
-  ExternalLinkIcon,
   ShieldIcon,
 } from "@/components/ui/icons";
 import type { RecordTarget } from "@/components/members/record-confession-dialog";
+import { FollowUpActions } from "@/components/members/follow-up-actions";
 
 export function MemberDrawer({
   memberId,
@@ -155,32 +154,20 @@ export function MemberDrawer({
                 </Link>
               </div>
 
-              {/* The reminder reads out how many days late the member is, so it
-                  is only offered past the limit. The bare chat is always there
-                  for anyone with a number. */}
+              {/* The same controls as the roster row and the attention queue,
+                  sized up for a panel. This is the surface most likely to be
+                  handed to somebody at the church door, which is why it is the
+                  one place the reminder's wording would be one press from leaving
+                  with them — and why the server, not this component, decides who
+                  is offered it. */}
               <div className="drawer-contact-actions">
-                {details.reminderUrl ? (
-                  <a
-                    className="button button--secondary button--full"
-                    href={details.reminderUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={fill(d.remindLabel, { name: details.name })}
-                  >
-                    <BellIcon /> {d.remind}
-                  </a>
-                ) : null}
-                {details.whatsappUrl ? (
-                  <a
-                    className="button button--secondary button--full"
-                    href={details.whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={fill(d.whatsappLabel, { name: details.name })}
-                  >
-                    <ExternalLinkIcon /> {d.whatsapp}
-                  </a>
-                ) : null}
+                <FollowUpActions
+                  member={details}
+                  variant="button"
+                  dateFormat={details.dateFormat}
+                  locale={locale}
+                  dict={dict}
+                />
               </div>
 
               <section className="detail-grid" aria-label={d.summary}>

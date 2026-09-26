@@ -30,6 +30,12 @@ const memberSelect = {
   phone: true,
   lastConfessionDate: true,
   confessionIntervalDays: true,
+  // The two follow-up facts. `extendedUntil` is required by the metrics — it is
+  // a floor on the next due date — and `reminderSentAt` by the marker, so
+  // forgetting either here would produce a roster that quietly lies about
+  // whether somebody has already been asked to return.
+  extendedUntil: true,
+  reminderSentAt: true,
 } as const;
 
 export interface DashboardMember extends ReturnType<typeof toMemberListItem> {
@@ -140,7 +146,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   );
 
   const members = sourceMembers.map((member) =>
-    addWhatsAppUrl(toMemberListItem(member, settings, today), settings, request),
+    addWhatsAppUrl(
+      toMemberListItem(member, settings, today, settings.timezone),
+      settings,
+      request,
+    ),
   );
 
   const countStatus = (status: MemberStatus) =>
@@ -216,7 +226,7 @@ export async function getMemberDetails(context: TenantContext, memberId: string)
 
   if (!member) return null;
 
-  const metricsMember = toMemberListItem(member, settings, today);
+  const metricsMember = toMemberListItem(member, settings, today, settings.timezone);
   // The same rule as the dashboard's, and for the same reason: this is the
   // drawer, so it is the surface most likely to be handed to a visitor at the
   // church door, and a saved message here would be one press from leaving with
@@ -266,7 +276,7 @@ export async function getArchivedMembers() {
   );
 
   return members.map((member) => ({
-    ...toMemberListItem(member, settings, today),
+    ...toMemberListItem(member, settings, today, settings.timezone),
     archivedAt: member.archivedAt?.toISOString() ?? null,
   }));
 }

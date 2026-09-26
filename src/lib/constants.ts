@@ -107,6 +107,22 @@ export const STATUS = {
 
 export type MemberStatus = (typeof STATUS)[keyof typeof STATUS];
 
+/**
+ * The durations the interface offers when a member is given more time.
+ *
+ * A closed set rather than a free number, for two reasons. A priest choosing
+ * between a week, a fortnight and a month is choosing between three situations
+ * they recognise — someone is ill, someone is away, someone has plainly been
+ * missed — and a text box would ask them to do calendar arithmetic on a phone at
+ * the moment they least want to. And a closed set is closed at the boundary
+ * too: the value that reaches the service is one of these, so there is no way to
+ * hand it a number that would push a member's due date years into the future and
+ * quietly remove them from follow-up for good.
+ *
+ * Shortest first, so a mistaken tap grants the least time rather than the most.
+ */
+export const EXTENSION_PRESETS = [7, 14, 30] as const;
+
 export const AUDIT_ACTIONS = {
   MEMBER_CREATED: "MEMBER_CREATED",
   MEMBER_UPDATED: "MEMBER_UPDATED",
@@ -116,6 +132,19 @@ export const AUDIT_ACTIONS = {
   MEMBER_ARCHIVED: "MEMBER_ARCHIVED",
   MEMBER_RESTORED: "MEMBER_RESTORED",
   MEMBER_PERMANENTLY_DELETED: "MEMBER_PERMANENTLY_DELETED",
+  /**
+   * The reminder link was opened for a member.
+   *
+   * Recorded because "who has been asked to come back, and who has not" is a
+   * real operational fact about a parish, and because a marker that silently
+   * appeared on a member with no explanation is worse than no marker. The audit
+   * row carries the member's id and nothing else: not the message, which is
+   * already in the parish's settings and in the recipient's WhatsApp, and
+   * certainly nothing about the confession itself.
+   */
+  MEMBER_REMINDED: "MEMBER_REMINDED",
+  MEMBER_EXTENDED: "MEMBER_EXTENDED",
+  MEMBER_EXTENSION_REMOVED: "MEMBER_EXTENSION_REMOVED",
   SETTINGS_UPDATED: "SETTINGS_UPDATED",
   PASSWORD_CHANGED: "PASSWORD_CHANGED",
   SESSION_REVOKED: "SESSION_REVOKED",

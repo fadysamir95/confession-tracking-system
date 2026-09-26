@@ -19,16 +19,15 @@ import { getInitials } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
-  BellIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
   EditIcon,
-  ExternalLinkIcon,
   SearchIcon,
 } from "@/components/ui/icons";
 import { MemberDrawer } from "@/components/members/member-drawer";
+import { FollowUpActions } from "@/components/members/follow-up-actions";
 import { useMemberFilter } from "@/components/dashboard/member-filter-context";
 import {
   RecordConfessionDialog,
@@ -349,36 +348,21 @@ export function MemberExplorer({
                       </td>
                       <td>
                         <div className="row-actions">
-                          {/* The reminder states how many days late the member is,
-                              so it is only offered to someone who is late. The
-                              bare chat link is for everyone else — and for them
-                              too, when the priest would rather write it. */}
-                          {/* Absent rather than hidden: the server decides. See
-                              `shouldOfferReminder`. */}
-                          {member.reminderUrl ? (
-                            <a
-                              className="icon-button"
-                              href={member.reminderUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={m.remindTooltip}
-                              aria-label={fill(m.remindLabel, { name: member.name })}
-                            >
-                              <BellIcon />
-                            </a>
-                          ) : null}
-                          {member.whatsappUrl ? (
-                            <a
-                              className="icon-button"
-                              href={member.whatsappUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={m.whatsappTooltip}
-                              aria-label={fill(m.whatsappLabel, { name: member.name })}
-                            >
-                              <ExternalLinkIcon />
-                            </a>
-                          ) : null}
+                          {/* The reminder states how many days late the member
+                              is, so it is only offered to someone who is late;
+                              the bare chat link is for everyone else, and for
+                              them too when the priest would rather write it.
+                              Both, plus the extension, are decided in one place
+                              and arrive already filtered — the server has
+                              already refused the reminder to a member within
+                              their limit, so the row carries nothing it should
+                              not. See `shouldOfferReminder`. */}
+                          <FollowUpActions
+                            member={member}
+                            dateFormat={dateFormat}
+                            locale={locale}
+                            dict={dict}
+                          />
                           <button
                             className="icon-button"
                             type="button"
@@ -458,26 +442,15 @@ export function MemberExplorer({
                     </div>
                   </div>
                   <div className="member-card__actions">
-                    {member.reminderUrl ? (
-                      <a
-                        className="button button--secondary"
-                        href={member.reminderUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <BellIcon /> {m.remind}
-                      </a>
-                    ) : null}
-                    {member.whatsappUrl ? (
-                      <a
-                        className="button button--secondary"
-                        href={member.whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLinkIcon /> {m.whatsapp}
-                      </a>
-                    ) : null}
+                    {/* The mobile card. Same component as the table row, sized up
+                        — see the note there for why the rules live in one place. */}
+                    <FollowUpActions
+                      member={member}
+                      variant="button"
+                      dateFormat={dateFormat}
+                      locale={locale}
+                      dict={dict}
+                    />
                     <button
                       className="button button--primary"
                       type="button"

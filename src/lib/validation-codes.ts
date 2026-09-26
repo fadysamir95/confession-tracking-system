@@ -40,6 +40,7 @@ export const VALIDATION_CODES = [
   "tooLong",
   "tooShort",
   "invalidDate",
+  "extensionNotOffered",
   "invalidInput",
 ] as const;
 
@@ -77,6 +78,7 @@ const SLOT: Record<ValidationCode, MessageSlot> = {
   tooLong: "tooLong",
   tooShort: "tooShort",
   invalidDate: "invalidDate",
+  extensionNotOffered: "extensionNotOffered",
   invalidInput: "invalidInput",
 };
 

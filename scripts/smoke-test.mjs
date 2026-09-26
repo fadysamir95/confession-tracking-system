@@ -579,11 +579,99 @@ if (overdueWithNumber.length > 0) {
 // notification toggle, which is not what it does. The count is compared rather
 // than the presence tested, so a link rendered without a name is a failure and
 // an extra name is too.
-const reminderLabels = [...dashboard.matchAll(/aria-label="تذكير [^"]+"/g)];
+//
+// Counted across the whole page, and paired with the page's reminder links
+// rather than with the table rows. A member is rendered up to three times —
+// table row, phone-sized card, and the attention queue — so pairing against rows
+// alone compares a number that includes all three against a number that
+// includes one, and only ever agrees when nobody is overdue at all. The check
+// was passing for a year on an empty answer.
+//
+// Two wordings are accepted because a member who has already been reminded gets
+// a label that says when, which is the point of the marker. That label still
+// names the control, so this is not a looser check — it is the same requirement
+// with the second of the dictionary's own names for it.
+const reminderLabels = [
+  ...dashboard.matchAll(/aria-label="(?:تذكير|آخر تذكير) [^"]+"/g),
+].length;
+const pageReminderLinks = [
+  ...dashboard.matchAll(/href="https:\/\/wa\.me\/\d+\?text=/g),
+].length;
 record(
   "the reminder is labelled with the dictionary's own name, not just an icon",
-  reminderLabels.length === rowsWithMessage.length,
-  `${reminderLabels.length} labels for ${rowsWithMessage.length} reminder links`,
+  reminderLabels === pageReminderLinks,
+  `${reminderLabels} labels for ${pageReminderLinks} reminder links`,
+);
+
+// The reminder marker, and the extension, in one group: both are about what has
+// already been done about a member who is late, and both are checked per row for
+// the same reason the saved message is. A page-level count would pass just as
+// happily if every row in the parish carried a marker, which is the failure that
+// matters — a reminder that cannot be told from one that has not been sent yet
+// tells the priest nothing about who still needs chasing.
+//
+// `data-reminded` exists on the wrapper precisely so this is read from the state
+// and not inferred from a colour, which a stylesheet change could quietly
+// reverse.
+const isReminded = (row) => row.includes('data-reminded="yes"');
+const hasExtendMenu = (row) => row.includes('aria-haspopup="menu"');
+const hasGrace = (row) => row.includes("follow-up__grace");
+
+// Universal. A grace is something to grant to somebody who is actually late;
+// offering it to a member inside their limit would be offering to make a date
+// that is already fine later for no reason.
+const extendRows = allRows.filter((match) => hasExtendMenu(match[0]));
+record(
+  "the extension control is only offered to a member past the limit",
+  allRows.length > 0 && extendRows.every((match) => isOverdue(match[0])),
+  `${extendRows.length} rows offer an extension; ${
+    extendRows.filter((match) => !isOverdue(match[0])).length
+  } of them should not`,
+);
+
+// Universal. A member who has already been given time shows what that time is
+// and a way to take it back — never the control that grants it, because that
+// would invite granting a second grace on top of the first.
+record(
+  "an extension already in force is shown instead of the control that grants one",
+  allRows.length > 0 &&
+    allRows.every((match) => !(hasExtendMenu(match[0]) && hasGrace(match[0]))),
+  `${allRows.filter((match) => hasExtendMenu(match[0]) && hasGrace(match[0])).length} rows show both`,
+);
+
+// Universal. The marker is information, and the control it sits on still works.
+// A marker that disabled the button would break the one thing the request asked
+// to keep possible: sending the reminder again.
+const remindedOverdue = allRows.filter(
+  (match) => isReminded(match[0]) && isOverdue(match[0]),
+);
+if (remindedOverdue.length > 0) {
+  record(
+    "a member already reminded past the limit can still be reminded again",
+    remindedOverdue.every((match) => hasMessage(match[0])),
+    `${remindedOverdue.filter((match) => !hasMessage(match[0])).length} of ${
+      remindedOverdue.length
+    } reminded members lost the link`,
+  );
+} else {
+  record(
+    "a reminded member keeps the reminder link (skipped: none reminded today)",
+    true,
+    "no member past the limit has been reminded on this page",
+  );
+}
+
+// A grace in force is a claim about a date, and the one that can be taken back
+// has to be reachable. The chip is not a control, so the undo inside it is the
+// only affordance — and a chip with no way out would leave the priest unable to
+// reverse a decision made in a hurry.
+const graceRows = allRows.filter((match) => hasGrace(match[0]));
+record(
+  "an extension in force can be taken back from where it is shown",
+  graceRows.every((match) => /<button[^>]*follow-up__undo/.test(match[0])),
+  `${graceRows.filter((match) => !/<button[^>]*follow-up__undo/.test(match[0])).length} of ${
+    graceRows.length
+  } grace chips have no undo`,
 );
 
 // The bare link is for everyone, and "no message" has to be checked as a query

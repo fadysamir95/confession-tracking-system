@@ -6,8 +6,9 @@ import { formatDate, type SupportedDateFormat } from "@/lib/dates";
 import type { Dictionary } from "@/lib/dictionaries/en";
 import { fill, formatPlural, type Locale } from "@/lib/i18n";
 import type { DashboardMember } from "@/lib/member-view-types";
-import { BellIcon, CheckIcon, ExternalLinkIcon } from "@/components/ui/icons";
+import { CheckIcon } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { FollowUpActions } from "@/components/members/follow-up-actions";
 import {
   RecordConfessionDialog,
   type RecordTarget,
@@ -135,35 +136,19 @@ export function AttentionSection({
                   {remainingLabel(member, locale, dict)}
                 </span>
                 <div className="attention-actions">
-                  {/* Only the overdue queue gets the reminder. The saved template
-                      names how many days late someone is, which is a thing to say
-                      to a person who *is* late and nothing to say to anyone
-                      else — the due-soon and never-recorded members would be
-                      told they are zero days overdue. */}
-                  {member.reminderUrl ? (
-                    <a
-                      className="icon-button"
-                      href={member.reminderUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={fill(dict.members.remindLabel, { name: member.name })}
-                      title={dict.members.remindTooltip}
-                    >
-                      <BellIcon />
-                    </a>
-                  ) : null}
-                  {member.whatsappUrl ? (
-                    <a
-                      className="icon-button"
-                      href={member.whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={fill(dict.members.whatsappLabel, { name: member.name })}
-                      title={dict.members.whatsappTooltip}
-                    >
-                      <ExternalLinkIcon />
-                    </a>
-                  ) : null}
+                  {/* The reminder, the plain chat, and the extension, decided in
+                      one place. The reminder reaches only the overdue queue: the
+                      saved template names how many days late someone is, which is
+                      a thing to say to a person who *is* late and nothing to say
+                      to anyone else. The server has already made that call — see
+                      `shouldOfferReminder` — so this only renders what it is
+                      given. */}
+                  <FollowUpActions
+                    member={member}
+                    dateFormat={dateFormat}
+                    locale={locale}
+                    dict={dict}
+                  />
                   <button
                     className="button button--small button--secondary"
                     type="button"

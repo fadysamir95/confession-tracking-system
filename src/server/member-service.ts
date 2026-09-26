@@ -1,6 +1,6 @@
 import "server-only";
 import { AUDIT_ACTIONS, CAPABILITIES } from "@/lib/constants";
-import { isValidIsoDate } from "@/lib/dates";
+import { addDays, isValidIsoDate } from "@/lib/dates";
 import type { MemberCreateInput, MemberUpdateInput } from "@/lib/validation";
 import { normalizeName, normalizePhone } from "@/lib/utils";
 import { DomainError } from "@/server/errors";
@@ -261,12 +261,176 @@ export async function recordConfession(
     });
     await db.member.update({
       where: { tenantId_id: { tenantId, id: memberId } },
-      data: { lastConfessionDate: confessionDate },
+      data: {
+        lastConfessionDate: confessionDate,
+        // A new date opens a new period, and both of these belong to the one
+        // that just closed. Left in place, a member who came back would go on
+        // carrying a "reminded" marker about a limit that no longer applies and
+        // an extension that was never meant to survive their return — so they
+        // would silently skip the next round of follow-up, which is the one
+        // failure mode of a reminder marker that actually costs something.
+        //
+        // Clearing an interval edit is deliberately *not* done here, and the
+        // reason is that it would be invisible. Fixing a mistyped limit should
+        // do exactly what it says; a grace that turns out to be longer than the
+        // corrected limit is visible in the drawer and can be taken back there.
+        reminderSentAt: null,
+        extendedUntil: null,
+      },
     });
     await db.auditLog.create({
       data: {
         tenantId,
         action: AUDIT_ACTIONS.CONFESSION_RECORDED,
+        userId: context.user.id,
+        memberId,
+      },
+    });
+  });
+}
+
+/**
+ * Note that the reminder link was opened for a member.
+ *
+ * Called from the click on the link rather than from any confirmation of
+ * delivery, because there is nothing to confirm: the link points at WhatsApp,
+ * and nothing in this system can see whether the message was sent, read, or
+ * answered. Recording "opened" as though it were "received" would put a claim in
+ * the audit log that no evidence supports, and a priest deciding whether to
+ * follow up again deserves to know the difference.
+ *
+ * Idempotent by nature — it is a timestamp being set, not a count being
+ * incremented — so a double click, a re-render, or a retry writes the same
+ * thing twice over and costs nothing but a row.
+ */
+export async function markReminderSent(
+  context: TenantContext,
+  memberId: string,
+): Promise<void> {
+  assertCapability(context, CAPABILITIES.MANAGE_MEMBERS, "CANNOT_RECORD");
+  const tenantId = context.tenant.id;
+
+  await withTenant(tenantId, async (db) => {
+    const result = await db.member.updateMany({
+      where: { tenantId, id: memberId, archivedAt: null },
+      data: { reminderSentAt: new Date() },
+    });
+
+    if (result.count === 0) {
+      throw new DomainError("MEMBER_NOT_FOUND");
+    }
+
+    await db.auditLog.create({
+      data: {
+        tenantId,
+        action: AUDIT_ACTIONS.MEMBER_REMINDED,
+        userId: context.user.id,
+        memberId,
+      },
+    });
+  });
+}
+
+/**
+ * Give a member more time, until a date the priest chose.
+ *
+ * Counted from today rather than from the date they were due, and that is the
+ * only way this can be the operation a priest means by it. They are looking at
+ * somebody who is already late — by two days or by two hundred — and "extend
+ * the duration" means give them time from *now*. Counting from the old due date
+ * would leave the badly-overdue cases exactly as late as they were, or worse,
+ * and the control would appear to have done nothing.
+ *
+ * Only ever extends. A second extension of a member who already has a longer one
+ * takes the later of the two dates, so this cannot be used to shorten a grace
+ * back down; `undoExtension` is the only way to take one away, and it is a
+ * single click.
+ */
+export async function extendMember(
+  context: TenantContext,
+  memberId: string,
+  days: number,
+  today: string,
+): Promise<void> {
+  assertCapability(context, CAPABILITIES.MANAGE_MEMBERS, "CANNOT_RECORD");
+  const tenantId = context.tenant.id;
+  const requested = addDays(today, days);
+
+  await withTenant(tenantId, async (db) => {
+    // Read-then-write, both sides carrying the tenant. The read is scoped to
+    // this tenant so a member id belonging to a parish that is not ours reads as
+    // absent rather than as somebody else's extension to compare against, and
+    // the write repeats the predicate so that the check and the change cannot
+    // come apart.
+    const member = await db.member.findUnique({
+      where: { tenantId_id: { tenantId, id: memberId } },
+      select: { id: true, extendedUntil: true, archivedAt: true },
+    });
+
+    if (!member || member.archivedAt) {
+      throw new DomainError("MEMBER_NOT_FOUND");
+    }
+
+    await db.member.updateMany({
+      where: { tenantId, id: memberId, archivedAt: null },
+      data: {
+        extendedUntil:
+          member.extendedUntil && member.extendedUntil > requested
+            ? member.extendedUntil
+            : requested,
+      },
+    });
+
+    await db.auditLog.create({
+      data: {
+        tenantId,
+        action: AUDIT_ACTIONS.MEMBER_EXTENDED,
+        userId: context.user.id,
+        memberId,
+      },
+    });
+  });
+}
+
+/**
+ * Take back an extension.
+ *
+ * Separate from "extend by less", because the honest thing to do when a priest
+ * changes their mind is to return the member to where the calendar said they
+ * were, and there is no number of days that expresses that. A negative
+ * extension would be the same operation wearing a disguise, and it would need
+ * the member's original due date to be even possible.
+ */
+export async function undoExtension(
+  context: TenantContext,
+  memberId: string,
+): Promise<void> {
+  assertCapability(context, CAPABILITIES.MANAGE_MEMBERS, "CANNOT_RECORD");
+  const tenantId = context.tenant.id;
+
+  await withTenant(tenantId, async (db) => {
+    const result = await db.member.updateMany({
+      where: { tenantId, id: memberId, archivedAt: null, extendedUntil: { not: null } },
+      data: { extendedUntil: null },
+    });
+
+    if (result.count === 0) {
+      // Either there is no such member in this tenant, or the member has no
+      // extension to take back. The first is a refusal and the second is a
+      // no-op the caller reports as "nothing to undo", and neither should be
+      // told apart by guessing: a member that is not there must not be reported
+      // as merely unextended, because the two mean very different things to a
+      // caller deciding whether it acted on a real member.
+      const exists = await db.member.count({
+        where: { tenantId, id: memberId, archivedAt: null },
+      });
+      throw new DomainError(exists === 0 ? "MEMBER_NOT_FOUND" : "NO_EXTENSION_TO_UNDO");
+    }
+
+    await db.auditLog.create({
+      data: {
+        tenantId,
+        action: AUDIT_ACTIONS.MEMBER_EXTENSION_REMOVED,
         userId: context.user.id,
         memberId,
       },

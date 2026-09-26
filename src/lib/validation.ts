@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TEMPLATE_PLACEHOLDERS } from "@/lib/constants";
+import { EXTENSION_PRESETS, TEMPLATE_PLACEHOLDERS } from "@/lib/constants";
 import { isValidIsoDate, isValidTimeZone } from "@/lib/dates";
 import {
   codeMessage,
@@ -107,6 +107,19 @@ export const recordConfessionSchema = z.object({
 });
 
 export const memberIdSchema = z.string().cuid();
+
+export const extendMemberSchema = z.object({
+  memberId: z.string().cuid(),
+  days: z
+    .number()
+    .int()
+    .refine((days) => (EXTENSION_PRESETS as readonly number[]).includes(days), {
+      // The list is interpolated rather than written into the sentence, so the
+      // two dictionaries can each place it where their own grammar wants it and
+      // neither has to be edited when a preset is added.
+      message: codeMessage("extensionNotOffered", { list: EXTENSION_PRESETS.join(", ") }),
+    }),
+});
 
 export const settingsSchema = z
   .object({

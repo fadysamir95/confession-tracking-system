@@ -1196,11 +1196,150 @@ dialog::backdrop {
   margin-bottom: 25px;
 }
 
-/* The two WhatsApp links, stacked. No margin of its own, so that when a member
-   has no number at all — or is within their limit, so gets only the plain one —
-   the wrapper collapses to nothing rather than leaving a gap behind it. The
-   buttons separate themselves with `gap`, which is why the spacing is here and
-   not below. */
+/* The follow-up controls, in whichever of their two sizes the surface needs.
+   `gap` and not margins, so that a member with no number — or within their
+   limit, so offered only the plain chat — collapses to nothing instead of
+   leaving a hole where a control used to be. */
+.follow-up {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.follow-up--button {
+  display: grid;
+  gap: 8px;
+}
+
+.follow-up--button .follow-up__remind,
+.follow-up--button .follow-up__whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Sent already. A tinted surface rather than a different icon: the control has
+   to keep looking like the control, because it still works, and swapping the
+   glyph would be read as a different action. The colour alone is not the signal
+   either — the `title` and `aria-label` name the date, and the drawer spells it
+   out in words, so the marker survives a screen in greyscale and for a reader
+   who cannot distinguish the tint. */
+.follow-up__remind.is-reminded {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.follow-up__flag {
+  margin-inline-start: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--surface);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* A grace in force. Reads as information rather than as a control, which is
+   what it is — except for the one control inside it. */
+.follow-up__grace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.follow-up__undo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.follow-up__undo:hover {
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.follow-up__undo:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.follow-up__undo svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The menu, anchored to the clock button that opened it. `inset-inline-start`
+   rather than `left`, so it opens towards the reading edge in both languages
+   instead of hanging off the side of the screen in Arabic. */
+.extend-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.extend-menu__label {
+  margin-inline-start: 8px;
+}
+
+.extend-menu__list {
+  position: absolute;
+  z-index: 20;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  display: grid;
+  min-width: 140px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.extend-menu__list button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.extend-menu__list button:hover,
+.extend-menu__list button:focus-visible {
+  background: var(--surface-strong);
+}
+
 .drawer-contact-actions {
   display: grid;
   gap: 8px;

@@ -37,6 +37,7 @@ export const ERROR_CODES = [
   "NOT_ARCHIVED",
   "DUPLICATE_MEMBER",
   "ARCHIVED_DUPLICATE",
+  "NO_EXTENSION_TO_UNDO",
 
   // Bulk roster import.
   "IMPORT_TOO_LARGE",
@@ -87,6 +88,7 @@ const CODE_TO_MESSAGE: Record<ErrorCode, ErrorFallback> = {
   NOT_ARCHIVED: "archiveOnlyDelete",
   DUPLICATE_MEMBER: "activeDuplicate",
   ARCHIVED_DUPLICATE: "archivedDuplicate",
+  NO_EXTENSION_TO_UNDO: "noExtensionToUndo",
   IMPORT_TOO_LARGE: "importTooLarge",
   IMPORT_EMPTY: "importEmpty",
   IMPORT_UNREADABLE: "importUnreadable",
