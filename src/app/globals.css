@@ -1196,6 +1196,21 @@ dialog::backdrop {
   margin-bottom: 25px;
 }
 
+/* The two WhatsApp links, stacked. No margin of its own, so that when a member
+   has no number at all — or is within their limit, so gets only the plain one —
+   the wrapper collapses to nothing rather than leaving a gap behind it. The
+   buttons separate themselves with `gap`, which is why the spacing is here and
+   not below. */
+.drawer-contact-actions {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 25px;
+}
+
+.drawer-contact-actions:empty {
+  display: none;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1810,9 +1825,44 @@ dialog::backdrop {
   padding: 15px;
 }
 
+/* Set by the recent-card guard script before the card is parsed, so a dismissed
+   card is never painted. `display` and not `visibility` because the restore
+   link that replaces the card must keep its own box. */
+html[data-recent="hidden"] .recent-card {
+  display: none;
+}
+
+/* The way back. Sits in the card's place rather than in settings, because a
+   dismissal nobody can undo from the screen in front of them is a deletion with
+   a confirmation dialog on it.
+
+   No margin of its own: this stands in for the card inside the same grid, which
+   already supplies the spacing, and a second 32px here would leave a hole where
+   the card used to be. Aligned to the end, which in a right-to-left layout is
+   the side the button that dismissed it was on. */
+.recent-card__restore {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.recent-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .recent-card__header h2 {
   margin-bottom: 3px;
   font-size: 0.94rem;
+}
+
+/* A dismiss control inside a heading row must not look like the row's title
+   button, so it is held to the icon-button size rather than inheriting the
+   0.94rem heading rhythm. */
+.recent-card__header .icon-button {
+  flex: 0 0 auto;
 }
 
 .recent-card__header p {
@@ -3252,9 +3302,13 @@ kbd {
 
   .member-card__actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 7px;
   }
 
+  /* Three or four controls — record, remind, WhatsApp — do not fit side by side
+     on the narrowest phones. Wrapping lets a button drop to its own full-width
+     row instead of compressing all of them to unreadable. */
   .member-card__actions .button {
     flex: 1;
     padding-inline: 8px;

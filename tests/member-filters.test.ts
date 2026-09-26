@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { STATUS } from "@/lib/constants";
+import { getDictionary } from "@/lib/i18n";
 import { toMemberListItem } from "@/lib/member-domain";
 import {
   filterMembers,
   getMemberCounts,
+  MEMBER_SORTS,
   searchMembers,
+  sortLabel,
   sortMembers,
 } from "@/lib/member-filters";
 
@@ -80,6 +83,32 @@ describe("member search, filter, and sort", () => {
   it("sorts names in both directions", () => {
     expect(sortMembers(members, "NAME_ASC")[0]?.name).toBe("Ámira Khalil");
     expect(sortMembers(members, "NAME_DESC")[0]?.name).toBe("Peter John");
+  });
+
+  /**
+   * Days-since was withdrawn from the sort menu, and this is what holds it
+   * withdrawn. It is a vocabulary test rather than a behaviour one on purpose:
+   * the problem with the old order was never that it sorted wrongly, it was that
+   * it offered a second, near-identical control. Asserting the list's contents
+   * catches an order creeping back in with no sort function behind it.
+   */
+  it("offers no order by days since", () => {
+    expect(MEMBER_SORTS).not.toContain("DAYS_HIGHEST");
+    expect(MEMBER_SORTS).not.toContain("DAYS_LOWEST");
+  });
+
+  /**
+   * Every order in the vocabulary must have a label, in both languages, or the
+   * sort menu renders an option that says nothing. This walks the real list
+   * rather than naming the keys, so a newly added order fails here instead of
+   * shipping blank.
+   */
+  it("labels every order, in both languages", () => {
+    for (const locale of ["en", "ar"] as const) {
+      for (const sort of MEMBER_SORTS) {
+        expect(sortLabel(sort, getDictionary(locale)).trim()).not.toBe("");
+      }
+    }
   });
 
   it("returns accurate dashboard counts", () => {

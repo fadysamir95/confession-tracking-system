@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { headers } from "next/headers";
 import { AppPreloader } from "@/components/ui/app-preloader";
 import { PRELOADER_GUARD_SCRIPT } from "@/lib/preloader";
+import { RECENT_CARD_GUARD_SCRIPT } from "@/lib/recent-card";
 import { dirFor } from "@/lib/i18n";
 import { getRequestDictionary, getRequestLocale } from "@/lib/i18n-server";
 import "./globals.css";
@@ -46,6 +47,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang={locale} dir={dirFor(locale)} suppressHydrationWarning>
       <body>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: PRELOADER_GUARD_SCRIPT }} />
+        {/* The same arrangement for the recently-recorded card: read the key and
+            set an attribute before the card is parsed, so a dismissal is in force
+            on the first paint rather than after a frame of it. It is not next to
+            the preloader guard for any reason other than both being the earliest
+            synchronous script in the document; neither depends on the other. */}
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: RECENT_CARD_GUARD_SCRIPT }} />
         <AppPreloader label={dict.common.loading} />
         {children}
       </body>

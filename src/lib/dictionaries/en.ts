@@ -55,18 +55,23 @@ const en = {
     TENANT_ADMIN: "Tenant administrator",
   },
 
+  /**
+   * The three states are named after the member's limit, not after an
+   * appointment. Nothing here is scheduled: what the system tracks is how long
+   * it has been, and a word like "active" says nothing about that.
+   */
   status: {
-    ACTIVE: "Active",
-    DUE_SOON: "Due soon",
-    OVERDUE: "Overdue",
+    ACTIVE: "Within limit",
+    DUE_SOON: "Nearing limit",
+    OVERDUE: "Limit exceeded",
     NEVER_RECORDED: "No record",
   },
 
   filters: {
     all: "All",
-    active: "Active",
-    dueSoon: "Due soon",
-    overdue: "Overdue",
+    active: "Within limit",
+    dueSoon: "Nearing limit",
+    overdue: "Limit exceeded",
     neverConfessed: "Never confessed",
     noPhone: "No phone number",
   },
@@ -78,9 +83,9 @@ const en = {
   } as PluralForms,
 
   phrases: {
-    overdue: "{days} overdue",
+    overdue: "{days} over the limit",
     remaining: "{days} remaining",
-    dueIn: "Due in {days}",
+    dueIn: "Limit ends in {days}",
     lastPrefix: "Last: {date}",
     pageOf: "Page {current} of {total}",
     daysCount: "{count} recorded",
@@ -192,7 +197,7 @@ const en = {
       "Activity statistics contain dates only and are informational, not a judgment.",
     needsAttention: "Needs attention",
     needsAttentionBody:
-      "Overdue members appear first, ordered by the greatest overdue duration.",
+      "Members past their limit appear first, longest past it at the top.",
     overdueBody: "Past the configured limit",
     dueSoonBody: "Within {count} days of the limit",
     neverRecorded: "Never recorded",
@@ -202,12 +207,12 @@ const en = {
       label: "Dashboard statistics",
       total: "Total members",
       totalBody: "Active directory",
-      active: "Active",
-      activeBody: "Within current limit",
-      dueSoon: "Due soon",
-      dueSoonBody: "Approaching due date",
-      overdue: "Overdue",
-      overdueBody: "Past due date",
+      active: "Within limit",
+      activeBody: "Has not passed the limit",
+      dueSoon: "Nearing limit",
+      dueSoonBody: "About to pass the limit",
+      overdue: "Limit exceeded",
+      overdueBody: "Past the limit",
       noRecord: "No record",
       noRecordBody: "No date recorded",
     },
@@ -217,6 +222,16 @@ const en = {
       body: "Latest attendance entries",
       recorded: "Recorded",
       empty: "No confessions have been recorded yet.",
+      /**
+       * Hides the card. It never deletes anything: the six entries are a view of
+       * real attendance dates, and a control sitting on a dashboard that wipes
+       * irreplaceable records on one click is not a control worth having here.
+       * `restore` exists because a dismissal with no way back is just a deletion
+       * with extra steps.
+       */
+      clearAll: "Clear this card",
+      clearAllLabel: "Hide the recently recorded card",
+      restore: "Show recently recorded",
     },
 
     quick: {
@@ -231,9 +246,9 @@ const en = {
       recordBody: "Find someone and confirm",
       search: "Search member",
       searchBody: "Name or phone number",
-      viewOverdue: "View overdue",
+      viewOverdue: "View over the limit",
       viewOverdueBody: "Follow up first",
-      viewDueSoon: "View due soon",
+      viewDueSoon: "View nearing the limit",
       viewDueSoonBody: "Plan ahead",
       dialogEyebrow: "Fast entry",
       dialogTitle: "Who came today?",
@@ -246,8 +261,6 @@ const en = {
     attention: {
       noConfessionDate: "No confession date",
       noAttendanceDate: "No attendance date",
-      whatsappTooltip: "Prepare WhatsApp reminder",
-      whatsappLabel: "Prepare WhatsApp reminder for {name}",
       record: "Record",
       emptyOverdue: "Everyone is within their current confession interval.",
       emptyDueSoon: "No members are approaching their current limit.",
@@ -284,10 +297,8 @@ const en = {
       nameDesc: "Name: Z → A",
       lastDesc: "Last confession: newest first",
       lastAsc: "Last confession: oldest first",
-      sinceDesc: "Days since: highest first",
-      sinceAsc: "Days since: lowest first",
-      dueAsc: "Next due: soonest first",
-      dueDesc: "Next due: latest first",
+      dueAsc: "Limit ends: soonest first",
+      dueDesc: "Limit ends: latest first",
       status: "Status",
     },
 
@@ -309,7 +320,19 @@ const en = {
     viewLabel: "View {name}",
     viewTooltip: "Edit or view member",
     record: "Record",
+    /**
+     * Two WhatsApp links, and the difference between them is the point. The
+     * reminder carries the parish's saved wording and is offered only to
+     * someone past their limit, because the template states how many days late
+     * they are — on anyone else it would say they were zero days overdue. The
+     * plain link opens the chat empty and is offered to everyone with a number.
+     */
+    remind: "Remind",
+    remindLabel: "Remind {name} using the saved message",
+    remindTooltip: "Open WhatsApp with the saved reminder",
     whatsapp: "WhatsApp",
+    whatsappLabel: "Open WhatsApp for {name} with no message",
+    whatsappTooltip: "Open WhatsApp with no message",
     recordConfession: "Record confession",
     emptyTitleQuery: "No members found",
     emptyTitleNoQuery: "No members in this view",
@@ -327,7 +350,10 @@ const en = {
       loading: "Loading member…",
       record: "Record confession",
       edit: "Edit member",
-      whatsapp: "Send WhatsApp reminder",
+      remind: "Remind",
+      remindLabel: "Remind {name} using the saved message",
+      whatsapp: "WhatsApp",
+      whatsappLabel: "Open WhatsApp for {name} with no message",
       summary: "Member summary",
       phone: "Phone",
       interval: "Interval",
@@ -527,7 +553,7 @@ const en = {
     general: "General",
     generalBody: "Default follow-up rules and date handling.",
     defaultInterval: "Default interval (days)",
-    dueSoonThreshold: "Due soon threshold (days)",
+    dueSoonThreshold: "Nearing-limit threshold (days)",
     timezone: "Timezone",
     dateFormat: "Date format",
     whatsapp: "WhatsApp reminder",
@@ -751,7 +777,7 @@ const en = {
     unknownPlaceholder: "Unknown placeholder: {token}",
     templateNeedsName: "The template must include {nameToken}",
     thresholdTooHigh:
-      "Due soon threshold must be less than the default interval",
+      "The nearing-limit threshold must be less than the default interval",
     passwordSame: "New password must be different",
     emailInvalid: "Invalid email address",
     tooLong: "Must be at most {max} characters",

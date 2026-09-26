@@ -34,14 +34,22 @@ export function parseMemberFilter(value?: string | string[]): MemberFilter {
 
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 
+/**
+ * The orders the roster can be read in.
+ *
+ * There is deliberately no "by days since" order. Days since is the same
+ * quantity as days remaining expressed against a different constant, so it
+ * duplicated `DUE_LATEST` for everyone whose limit is the parish default while
+ * disagreeing with it for everyone on a custom one — two controls, one of them
+ * subtly wrong. Sorting by status, then by days remaining, is the same ordering
+ * without the trap, which is what `ATTENTION` does.
+ */
 export const MEMBER_SORTS = [
   "ATTENTION",
   "NAME_ASC",
   "NAME_DESC",
   "LAST_NEWEST",
   "LAST_OLDEST",
-  "DAYS_HIGHEST",
-  "DAYS_LOWEST",
   "DUE_SOONEST",
   "DUE_LATEST",
   "STATUS",
@@ -85,10 +93,6 @@ export function sortLabel(sort: MemberSort, dict: Dictionary): string {
       return dict.members.sortOptions.lastDesc;
     case "LAST_OLDEST":
       return dict.members.sortOptions.lastAsc;
-    case "DAYS_HIGHEST":
-      return dict.members.sortOptions.sinceDesc;
-    case "DAYS_LOWEST":
-      return dict.members.sortOptions.sinceAsc;
     case "DUE_SOONEST":
       return dict.members.sortOptions.dueAsc;
     case "DUE_LATEST":
@@ -201,18 +205,6 @@ export function sortMembers<T extends MemberListItem>(
         return compareNullableDates(
           left.lastConfessionDate,
           right.lastConfessionDate,
-          "asc",
-        );
-      case "DAYS_HIGHEST":
-        return compareNumbers(
-          left.daysSinceLastConfession,
-          right.daysSinceLastConfession,
-          "desc",
-        );
-      case "DAYS_LOWEST":
-        return compareNumbers(
-          left.daysSinceLastConfession,
-          right.daysSinceLastConfession,
           "asc",
         );
       case "DUE_SOONEST":

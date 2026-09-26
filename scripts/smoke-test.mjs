@@ -302,6 +302,17 @@ record(
   "",
 );
 
+// Sorting by days-since was withdrawn: it is the same quantity as days
+// remaining against a different constant, so it duplicated the next-due order for
+// everyone on the parish default and disagreed with it for everyone on a custom
+// one. The Arabic label is checked because the sort menu is rendered from the
+// dictionary, so its absence in the markup is the absence of the option.
+record(
+  "the sort menu offers no order by day count",
+  !dashboard.includes("عدد الأيام: ") && !dashboard.includes("Days since:"),
+  "",
+);
+
 const importPage = pages.get("/members/import") ?? "";
 record("the import page offers a file picker", /type="file"/.test(importPage), "");
 record(
@@ -449,6 +460,177 @@ record(
   "the sign-in shell draws the mark as an image, not an inline SVG",
   /class="brand__mark[^"]*"[^>]*>\s*<img[^>]+brand-mark\.png/.test(loginPage.body),
   'expected an <img src="/brand-mark.png"> inside .brand__mark',
+);
+
+process.stdout.write(`\n=== the sidebar, the roster anchor, and the two WhatsApp links ===\n`);
+// The roster entry is a hash link. It failed in the most invisible way there is:
+// once the address bar already said `/#members`, a second press asked the router
+// for the page it was already on, and it correctly did nothing. These assert the
+// two things that fix depends on — the anchor still exists for a reader without
+// JavaScript, and the section it points at is on the page it points to.
+const navLinks = [...dashboard.matchAll(/<a[^>]*class="app-nav__link[^"]*"[^>]*>/g)].map(
+  (match) => match[0],
+);
+const membersNav = navLinks.find((tag) => /href="\/#members"/.test(tag));
+record(
+  "the sidebar's roster entry is a real link to the roster section",
+  membersNav !== undefined && /<section[^>]*id="members"/.test(dashboard),
+  membersNav ?? "no /#members link in the sidebar",
+);
+record(
+  "the roster section is on the dashboard, not only reachable by hash",
+  dashboard.includes('id="members"'),
+  "",
+);
+// Which entry the sidebar calls current. On the dashboard it is the dashboard
+// and only that — the roster is a section of the page you are already on, and
+// lighting up two entries says nothing. On the archived list it is the settings
+// entry, which is a page below settings and used to fall through the old prefix
+// test and light up nothing at all.
+//
+// The navigation is rendered twice, once per breakpoint, so the labels are
+// compared as a set and every copy has to agree: two bars marking different
+// entries would be a real bug that a "at least one" test would sail past.
+//
+// The expected labels are read out of the navigation itself rather than written
+// out here, so this holds in whichever language the reader is using.
+const labelFor = (page, href) => {
+  const tag = [...page.matchAll(/<a[^>]*class="app-nav__link[^"]*"[^>]*>/g)]
+    .map((match) => match[0])
+    .find((candidate) => candidate.includes(`href="${href}"`));
+  return /aria-label="([^"]*)"/.exec(tag ?? "")?.[1] ?? "?";
+};
+const currentOn = (page) => [
+  ...new Set(
+    [...page.matchAll(/<a[^>]*class="app-nav__link([^"]*)"[^>]*>/g)]
+      .filter((match) => match[1].includes("is-active"))
+      .map((match) => /aria-label="([^"]*)"/.exec(match[0])?.[1] ?? "?"),
+  ),
+];
+
+record(
+  "the sidebar marks the dashboard current, and nothing else",
+  currentOn(dashboard).length === 1 && currentOn(dashboard)[0] === labelFor(dashboard, "/"),
+  `current: ${JSON.stringify(currentOn(dashboard))}`,
+);
+const archivedPage = pages.get("/settings/archived") ?? "";
+record(
+  "the sidebar marks settings current on a page below it",
+  currentOn(archivedPage).length === 1 &&
+    currentOn(archivedPage)[0] === labelFor(dashboard, "/settings"),
+  `current: ${JSON.stringify(currentOn(archivedPage))}`,
+);
+// The roster is never current, because it is a section of the dashboard rather
+// than somewhere else. Marking it would put two entries of one page in the same
+// state, which tells the reader nothing about where they are.
+record(
+  "the sidebar never marks the roster section current",
+  !currentOn(dashboard).includes(labelFor(dashboard, "/#members")),
+  "",
+);
+
+// Two WhatsApp links, and the difference is the whole point: the reminder carries
+// the parish's saved wording and states how many days late someone is, so it is
+// only ever offered past the limit. The plain link is a bare chat.
+//
+// The rule is checked per roster row rather than by counting links, because a
+// page-level count only proves something when the data happens to contain an
+// overdue member — and it would pass just as happily if every row showed the
+// reminder. Walking the rows ties the message to the member it was rendered for.
+const allRows = [...dashboard.matchAll(/<tr[\s\S]*?<\/tr>/g)].filter(
+  (match) => !match[0].includes("<th"),
+);
+const hasMessage = (row) => /href="https:\/\/wa\.me\/[^"]*\?text=/.test(row);
+const isOverdue = (row) => row.includes('class="is-overdue"');
+const rowsWithMessage = allRows.filter((match) => hasMessage(match[0]));
+
+// Universal, so it means something on any data at all: no member who is within
+// their limit is handed the message that says how late they are.
+record(
+  "the saved-message link is never offered to a member within the limit",
+  allRows.length > 0 && rowsWithMessage.every((match) => isOverdue(match[0])),
+  `${rowsWithMessage.length} rows carry the saved message; ${
+    rowsWithMessage.filter((match) => !isOverdue(match[0])).length
+  } of them should not`,
+);
+// The other direction needs an overdue member to exist, so it is reported as
+// skipped rather than failed — this parish may simply have nobody late today,
+// which is a fact about the data and not a defect in the button.
+const overdueRows = allRows.filter((match) => isOverdue(match[0]));
+const overdueWithNumber = overdueRows.filter((match) =>
+  /href="https:\/\/wa\.me\/\d/.test(match[0]),
+);
+if (overdueWithNumber.length > 0) {
+  record(
+    "a member past the limit with a number is offered the saved message",
+    overdueWithNumber.every((match) => hasMessage(match[0])),
+    `${overdueWithNumber.filter((match) => !hasMessage(match[0])).length} of ${overdueWithNumber.length} overdue members have no reminder link`,
+  );
+} else {
+  record(
+    "the reminder link is offered to a member past the limit (skipped: none late today)",
+    true,
+    "no overdue member with a phone number on this page",
+  );
+}
+
+// The reminder is a control with a name, and the name has to be the one the
+// dictionary supplies. A bell icon alone would be indistinguishable from a
+// notification toggle, which is not what it does. The count is compared rather
+// than the presence tested, so a link rendered without a name is a failure and
+// an extra name is too.
+const reminderLabels = [...dashboard.matchAll(/aria-label="تذكير [^"]+"/g)];
+record(
+  "the reminder is labelled with the dictionary's own name, not just an icon",
+  reminderLabels.length === rowsWithMessage.length,
+  `${reminderLabels.length} labels for ${rowsWithMessage.length} reminder links`,
+);
+
+// The bare link is for everyone, and "no message" has to be checked as a query
+// fact: a `?text=` that slipped back in would put the parish's wording, naming a
+// member, in front of whoever clicked it.
+const bareLinks = [
+  ...new Set(
+    [...dashboard.matchAll(/href="(https:\/\/wa\.me\/[^"]*)"/g)].map((match) =>
+      decodeEntities(match[1]),
+    ),
+  ),
+].filter((href) => !href.includes("?text="));
+record(
+  "the bare WhatsApp link carries no prefilled message",
+  bareLinks.length > 0 && bareLinks.every((href) => !href.includes("?")),
+  bareLinks.filter((href) => href.includes("?")).join(", "),
+);
+const membersWithNumbers = allRows.filter((match) =>
+  /href="https:\/\/wa\.me\/\d+"/.test(match[0]),
+).length;
+record(
+  "every member with a number is offered the bare WhatsApp link",
+  allRows.length > 0 && membersWithNumbers > 0,
+  `${membersWithNumbers} of ${allRows.length} roster rows carry a number`,
+);
+
+process.stdout.write(`\n=== the recently recorded card ===\n`);
+// The dismiss control, and the guard script that makes a dismissal apply on the
+// first paint rather than after a frame of the card. The card is server-rendered,
+// so without the attribute the stylesheet cannot hide it before hydration and
+// every dismissed card would flash once on the way out.
+record(
+  "the recently recorded card can be cleared from its own header",
+  /class="recent-card__header"[\s\S]{0,400}?<button[^>]*>/.test(dashboard),
+  "",
+);
+record(
+  "a dismissed card is hidden by the stylesheet, not unmounted",
+  dashboard.includes("confession:recent-card-hidden") && /data-recent="hidden"|dataset\.recent/.test(dashboard),
+  "the guard script or its key is missing from the document",
+);
+// "Clear all" here must not have become a data-destroying button, and the honest
+// way to check that is to look for a delete form, not to trust the label.
+record(
+  "clearing the card submits no deletion",
+  !/recent-card[\s\S]{0,600}?<form/i.test(dashboard),
+  "",
 );
 
 const failures = checks.filter((check) => !check.ok);

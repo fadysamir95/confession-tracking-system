@@ -67,18 +67,22 @@ const ar: Dictionary = {
     TENANT_ADMIN: "مدير الكنيسة",
   },
 
+  /**
+   * الحالات الثلاث مسمّاة بالمدة نفسها، لا بموعد. مفيش حاجة هنا مجدولة: اللي
+   * النظام بيتابعه هو المدة اللي عدّت، وكلمة زي "منتظم" مش بتقول حاجة عن كده.
+   */
   status: {
-    ACTIVE: "منتظم",
-    DUE_SOON: "موعده قريب",
-    OVERDUE: "متأخر",
+    ACTIVE: "لم يتخطَّ المدة",
+    DUE_SOON: "أوشك على انتهاء المدة",
+    OVERDUE: "تخطَّى المدة",
     NEVER_RECORDED: "لا يوجد تسجيل",
   },
 
   filters: {
     all: "الكل",
-    active: "منتظم",
-    dueSoon: "موعده قريب",
-    overdue: "متأخر",
+    active: "لم يتخطَّ المدة",
+    dueSoon: "أوشك على انتهاء المدة",
+    overdue: "تخطَّى المدة",
     neverConfessed: "لم يعترف بعد",
     noPhone: "بدون رقم هاتف",
   },
@@ -93,14 +97,14 @@ const ar: Dictionary = {
   } as PluralForms,
 
   phrases: {
-    overdue: "متأخر {days}",
+    overdue: "تخطَّى المدة {days}",
     remaining: "متبقٍ {days}",
-    dueIn: "موعده خلال {days}",
+    dueIn: "تنتهي المدة خلال {days}",
     lastPrefix: "الأخير: {date}",
     pageOf: "صفحة {current} من {total}",
     daysCount: "{count} تسجيل",
     intervalDays: "{count} يوم",
-    dueSoonWithin: "خلال {count} يوم من الموعد",
+    dueSoonWithin: "خلال {count} يوم من انتهاء المدة",
     defaultIntervalHint: "اترك المدة فارغة ليُتبع الافتراضي وهو {count} يوم.",
     resultCount: "{count} {noun}",
     resultCountMatching: "{count} {noun} مطابق لـ «{query}»",
@@ -215,9 +219,9 @@ const ar: Dictionary = {
       "إحصاءات النشاط تحتوي على تواريخ فقط، وهي للاسترشاد لا للحكم.",
     needsAttention: "يحتاجون متابعة",
     needsAttentionBody:
-      "المتأخرون يظهرون أولًا، مرتّبين حسب أطول مدة تأخير.",
+      "من تخطَّت مدتهم يظهرون أولًا، والأطول تجاوزًا في الأعلى.",
     overdueBody: "تجاوز الحد المُحدَّد",
-    dueSoonBody: "خلال {count} يوم من الموعد",
+    dueSoonBody: "خلال {count} يوم من انتهاء المدة",
     neverRecorded: "لم يُسجَّل",
     neverRecordedBody: "لا يوجد تاريخ اعتراف مسجّل",
 
@@ -225,12 +229,12 @@ const ar: Dictionary = {
       label: "إحصاءات اللوحة",
       total: "إجمالي الأشخاص",
       totalBody: "السجل النشط",
-      active: "منتظم",
-      activeBody: "ضمن الموعد الحالي",
-      dueSoon: "موعده قريب",
-      dueSoonBody: "قارب على الموعد",
-      overdue: "متأخر",
-      overdueBody: "تجاوز الموعد",
+      active: "لم يتخطَّ المدة",
+      activeBody: "لم يتجاوز الحد المُحدَّد",
+      dueSoon: "أوشك على انتهاء المدة",
+      dueSoonBody: "قارب على تجاوز الحد",
+      overdue: "تخطَّى المدة",
+      overdueBody: "تجاوز الحد المُحدَّد",
       noRecord: "لا يوجد تسجيل",
       noRecordBody: "لم يُسجَّل أي تاريخ",
     },
@@ -240,6 +244,15 @@ const ar: Dictionary = {
       body: "أحدث سجلات الحضور",
       recorded: "تم التسجيل",
       empty: "لم يُسجَّل أي اعتراف بعد.",
+      /**
+       * بيخفي الكارت بس. بيحذفش أي حاجة: الستة دي عرض لتواريخ حضور حقيقية،
+       * وزرار على لوحة يشيل تواريخ لا تُسترجع بضغطة واحدة مش حاجة المفروض
+       * تكون هنا. و`restore` موجودة عشان الإخفاء اللي مالوش رجوع هو حذف
+       * بخطوات زيادة.
+       */
+      clearAll: "مسح هذا الكارت",
+      clearAllLabel: "إخفاء كارت آخر التسجيلات",
+      restore: "إظهار آخر التسجيلات",
     },
 
     quick: {
@@ -254,9 +267,9 @@ const ar: Dictionary = {
       recordBody: "ابحث عن شخص وأكّد الحضور",
       search: "بحث عن شخص",
       searchBody: "الاسم أو رقم الهاتف",
-      viewOverdue: "عرض المتأخرين",
+      viewOverdue: "عرض من تخطَّوا المدة",
       viewOverdueBody: "المتابعة أولًا",
-      viewDueSoon: "عرض القريبين من الموعد",
+      viewDueSoon: "عرض القريبين من تخطّي المدة",
       viewDueSoonBody: "خطط مقدمًا",
       dialogEyebrow: "تسجيل سريع",
       dialogTitle: "من جاء اليوم؟",
@@ -269,8 +282,6 @@ const ar: Dictionary = {
     attention: {
       noConfessionDate: "لا يوجد تاريخ اعتراف",
       noAttendanceDate: "لا يوجد تاريخ حضور",
-      whatsappTooltip: "تجهيز تذكير واتساب",
-      whatsappLabel: "تجهيز تذكير واتساب لـ {name}",
       record: "تسجيل",
       emptyOverdue: "الجميع ضمن فترتهم الحالية.",
       emptyDueSoon: "لا يوجد أحد يقترب من حده الحالي.",
@@ -305,10 +316,8 @@ const ar: Dictionary = {
       nameDesc: "الاسم: ي ← أ",
       lastDesc: "آخر اعتراف: الأحدث أولًا",
       lastAsc: "آخر اعتراف: الأقدم أولًا",
-      sinceDesc: "عدد الأيام: الأكبر أولًا",
-      sinceAsc: "عدد الأيام: الأصغر أولًا",
-      dueAsc: "الموعد القادم: الأقرب أولًا",
-      dueDesc: "الموعد القادم: الأبعد أولًا",
+      dueAsc: "نهاية المدة: الأقرب أولًا",
+      dueDesc: "نهاية المدة: الأبعد أولًا",
       status: "الحالة",
     },
 
@@ -318,7 +327,7 @@ const ar: Dictionary = {
       last: "آخر اعتراف",
       since: "عدد الأيام",
       limit: "المدة",
-      nextDue: "الموعد القادم",
+      nextDue: "انتهاء المدة",
       status: "الحالة",
       actions: "إجراءات",
     },
@@ -330,7 +339,18 @@ const ar: Dictionary = {
     viewLabel: "عرض {name}",
     viewTooltip: "تعديل أو عرض الشخص",
     record: "تسجيل",
+    /**
+     * زرارين واتساب، والفرق بينهما هو المقصود. التذكير بييجي بنص الكنيسة
+     * المحفوظ، وبيظهر بس لللي عدّت مدتهم — لأن النص بيقول عدد الأيام اللي
+     * اتأخر فيها، فعلى أي حد تاني هيقوله إنه متأخر صفر يوم. والزينك الفاضي
+     * بيفتح المحادثة من غير حاجة، وهو متاح لكل حد عنده رقم.
+     */
+    remind: "تذكير",
+    remindLabel: "تذكير {name} بالرسالة المحفوظة",
+    remindTooltip: "فتح واتساب بالرسالة المحفوظة",
     whatsapp: "واتساب",
+    whatsappLabel: "فتح واتساب لـ {name} بدون رسالة",
+    whatsappTooltip: "فتح واتساب بدون رسالة",
     recordConfession: "تسجيل اعتراف",
     emptyTitleQuery: "لا توجد نتائج",
     emptyTitleNoQuery: "لا يوجد أشخاص في هذا العرض",
@@ -346,7 +366,10 @@ const ar: Dictionary = {
       loading: "جارٍ تحميل بيانات الشخص…",
       record: "تسجيل اعتراف",
       edit: "تعديل البيانات",
-      whatsapp: "إرسال تذكير واتساب",
+      remind: "تذكير",
+      remindLabel: "تذكير {name} بالرسالة المحفوظة",
+      whatsapp: "واتساب",
+      whatsappLabel: "فتح واتساب لـ {name} بدون رسالة",
       summary: "ملخص بيانات الشخص",
       phone: "الهاتف",
       interval: "المدة",
@@ -537,7 +560,7 @@ const ar: Dictionary = {
     general: "عام",
     generalBody: "قواعد المتابعة الافتراضية وطريقة التعامل مع التواريخ.",
     defaultInterval: "المدة الافتراضية (أيام)",
-    dueSoonThreshold: "حد التنبيه القريب (أيام)",
+    dueSoonThreshold: "حد التنبيه قبل انتهاء المدة (أيام)",
     timezone: "المنطقة الزمنية",
     dateFormat: "صيغة التاريخ",
     whatsapp: "تذكير واتساب",
@@ -736,7 +759,8 @@ const ar: Dictionary = {
     templateRequired: "نص الرسالة مطلوب",
     unknownPlaceholder: "متغيّر غير معروف: {token}",
     templateNeedsName: "يجب أن يحتوي النص على {nameToken}",
-    thresholdTooHigh: "حد التنبيه القريب يجب أن يكون أقل من المدة الافتراضية",
+    thresholdTooHigh:
+      "حد التنبيه قبل انتهاء المدة يجب أن يكون أقل من المدة الافتراضية",
     passwordSame: "يجب أن تكون كلمة المرور الجديدة مختلفة",
     emailInvalid: "بريد إلكتروني غير صالح",
     tooLong: "يجب ألا يزيد على {max} حرف",

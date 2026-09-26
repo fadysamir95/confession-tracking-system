@@ -19,6 +19,7 @@ import { getInitials } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
+  BellIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -348,16 +349,32 @@ export function MemberExplorer({
                       </td>
                       <td>
                         <div className="row-actions">
+                          {/* The reminder states how many days late the member is,
+                              so it is only offered to someone who is late. The
+                              bare chat link is for everyone else — and for them
+                              too, when the priest would rather write it. */}
+                          {/* Absent rather than hidden: the server decides. See
+                              `shouldOfferReminder`. */}
+                          {member.reminderUrl ? (
+                            <a
+                              className="icon-button"
+                              href={member.reminderUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={m.remindTooltip}
+                              aria-label={fill(m.remindLabel, { name: member.name })}
+                            >
+                              <BellIcon />
+                            </a>
+                          ) : null}
                           {member.whatsappUrl ? (
                             <a
                               className="icon-button"
                               href={member.whatsappUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title={dict.dashboard.attention.whatsappTooltip}
-                              aria-label={fill(dict.dashboard.attention.whatsappLabel, {
-                                name: member.name,
-                              })}
+                              title={m.whatsappTooltip}
+                              aria-label={fill(m.whatsappLabel, { name: member.name })}
                             >
                               <ExternalLinkIcon />
                             </a>
@@ -441,6 +458,16 @@ export function MemberExplorer({
                     </div>
                   </div>
                   <div className="member-card__actions">
+                    {member.reminderUrl ? (
+                      <a
+                        className="button button--secondary"
+                        href={member.reminderUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <BellIcon /> {m.remind}
+                      </a>
+                    ) : null}
                     {member.whatsappUrl ? (
                       <a
                         className="button button--secondary"

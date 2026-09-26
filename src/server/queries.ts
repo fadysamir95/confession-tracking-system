@@ -4,7 +4,11 @@ import { getTodayInTimeZone, startOfMonth, startOfWeek } from "@/lib/dates";
 import { getRequestDictionary, getRequestLocale } from "@/lib/i18n-server";
 import { toMemberListItem } from "@/lib/member-domain";
 import { sortMembers } from "@/lib/member-filters";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import {
+  buildWhatsAppContactUrl,
+  buildWhatsAppReminderUrl,
+  shouldOfferReminder,
+} from "@/lib/whatsapp";
 import { canAccess, requireCapability, type TenantContext } from "@/server/auth";
 import { withTenant } from "@/server/db";
 import { getSettings } from "@/server/settings";
@@ -29,6 +33,9 @@ const memberSelect = {
 } as const;
 
 export interface DashboardMember extends ReturnType<typeof toMemberListItem> {
+  /** With the saved reminder prefilled. See `lib/member-view-types`. */
+  reminderUrl: string | null;
+  /** A bare chat link, nothing prefilled. */
   whatsappUrl: string | null;
 }
 
@@ -66,14 +73,27 @@ function addWhatsAppUrl(
   settings: { whatsappTemplate: string; whatsappCountryCode: string; dateFormat: string },
   { locale, dict }: Locale,
 ): DashboardMember {
+  const reminderUrl = buildWhatsAppReminderUrl(member, {
+    template: settings.whatsappTemplate,
+    countryCode: settings.whatsappCountryCode,
+    dateFormat: settings.dateFormat as Parameters<typeof buildWhatsAppReminderUrl>[1]["dateFormat"],
+    locale,
+    dict,
+  });
+
   return {
     ...member,
-    whatsappUrl: buildWhatsAppUrl(member, {
-      template: settings.whatsappTemplate,
+    // Decided here, and here alone. The saved message states how many days late
+    // the member is, so for anyone who is not late it would put the parish's own
+    // wording — carrying this member's name — into the page behind a control that
+    // must never be pressed. Deciding in the query rather than in the three
+    // components that render these links means the link is simply absent, the
+    // page carries nothing it should not, and there is no second place to
+    // forget the rule. `reminderUrl: null` now means exactly "not to be reminded".
+    reminderUrl: shouldOfferReminder(member.status, reminderUrl) ? reminderUrl : null,
+    // The bare link carries no message and so is offered to anyone with a number.
+    whatsappUrl: buildWhatsAppContactUrl(member, {
       countryCode: settings.whatsappCountryCode,
-      dateFormat: settings.dateFormat as Parameters<typeof buildWhatsAppUrl>[1]["dateFormat"],
-      locale,
-      dict,
     }),
   };
 }
@@ -197,15 +217,25 @@ export async function getMemberDetails(context: TenantContext, memberId: string)
   if (!member) return null;
 
   const metricsMember = toMemberListItem(member, settings, today);
+  // The same rule as the dashboard's, and for the same reason: this is the
+  // drawer, so it is the surface most likely to be handed to a visitor at the
+  // church door, and a saved message here would be one press from leaving with
+  // somebody's parish's wording in it.
+  const reminderUrl = buildWhatsAppReminderUrl(metricsMember, {
+    template: settings.whatsappTemplate,
+    countryCode: settings.whatsappCountryCode,
+    dateFormat: settings.dateFormat,
+    locale: request.locale,
+    dict: request.dict,
+  });
   return {
     ...metricsMember,
     administrativeNote: member.administrativeNote,
-    whatsappUrl: buildWhatsAppUrl(metricsMember, {
-      template: settings.whatsappTemplate,
+    reminderUrl: shouldOfferReminder(metricsMember.status, reminderUrl)
+      ? reminderUrl
+      : null,
+    whatsappUrl: buildWhatsAppContactUrl(metricsMember, {
       countryCode: settings.whatsappCountryCode,
-      dateFormat: settings.dateFormat,
-      locale: request.locale,
-      dict: request.dict,
     }),
     history: member.records.map((record) => ({
       id: record.id,

@@ -6,7 +6,7 @@ import { formatDate, type SupportedDateFormat } from "@/lib/dates";
 import type { Dictionary } from "@/lib/dictionaries/en";
 import { fill, formatPlural, type Locale } from "@/lib/i18n";
 import type { DashboardMember } from "@/lib/member-view-types";
-import { CheckIcon, ExternalLinkIcon } from "@/components/ui/icons";
+import { BellIcon, CheckIcon, ExternalLinkIcon } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RecordConfessionDialog,
@@ -135,16 +135,31 @@ export function AttentionSection({
                   {remainingLabel(member, locale, dict)}
                 </span>
                 <div className="attention-actions">
+                  {/* Only the overdue queue gets the reminder. The saved template
+                      names how many days late someone is, which is a thing to say
+                      to a person who *is* late and nothing to say to anyone
+                      else — the due-soon and never-recorded members would be
+                      told they are zero days overdue. */}
+                  {member.reminderUrl ? (
+                    <a
+                      className="icon-button"
+                      href={member.reminderUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={fill(dict.members.remindLabel, { name: member.name })}
+                      title={dict.members.remindTooltip}
+                    >
+                      <BellIcon />
+                    </a>
+                  ) : null}
                   {member.whatsappUrl ? (
                     <a
                       className="icon-button"
                       href={member.whatsappUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={fill(dict.dashboard.attention.whatsappLabel, {
-                        name: member.name,
-                      })}
-                      title={dict.dashboard.attention.whatsappTooltip}
+                      aria-label={fill(dict.members.whatsappLabel, { name: member.name })}
+                      title={dict.members.whatsappTooltip}
                     >
                       <ExternalLinkIcon />
                     </a>

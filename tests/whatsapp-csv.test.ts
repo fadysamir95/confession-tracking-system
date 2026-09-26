@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildWhatsAppUrl, defaultWhatsappTemplate, normalizePhoneForWhatsApp } from "@/lib/whatsapp";
+import {
+  buildWhatsAppContactUrl,
+  buildWhatsAppReminderUrl,
+  defaultWhatsappTemplate,
+  normalizePhoneForWhatsApp,
+  shouldOfferReminder,
+} from "@/lib/whatsapp";
+import { STATUS } from "@/lib/constants";
 import { createCsv, escapeCsvCell } from "@/lib/csv";
 import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -12,7 +19,7 @@ describe("WhatsApp links", () => {
   });
 
   it("builds an encoded, content-free reminder URL", () => {
-    const url = buildWhatsAppUrl(
+    const url = buildWhatsAppReminderUrl(
       {
         name: "John Doe",
         phone: "01012345678",
@@ -41,7 +48,7 @@ describe("WhatsApp links", () => {
    * into the middle of it.
    */
   it("substitutes the missing-date fallbacks in the reader's language", () => {
-    const english = buildWhatsAppUrl(
+    const english = buildWhatsAppReminderUrl(
       {
         name: "John Doe",
         phone: "01012345678",
@@ -60,7 +67,7 @@ describe("WhatsApp links", () => {
     expect(decodeURIComponent(english ?? "")).toContain("not recorded");
     expect(decodeURIComponent(english ?? "")).toContain("0 days");
 
-    const arabic = buildWhatsAppUrl(
+    const arabic = buildWhatsAppReminderUrl(
       {
         name: "John Doe",
         phone: "01012345678",
@@ -85,7 +92,7 @@ describe("WhatsApp links", () => {
     // 2 in Arabic takes the "two" form (يومان), not the "other" form, which is
     // the single most visible way a hand-rolled count reveals a machine
     // translation.
-    const url = buildWhatsAppUrl(
+    const url = buildWhatsAppReminderUrl(
       {
         name: "John Doe",
         phone: "01012345678",
@@ -117,6 +124,74 @@ describe("WhatsApp links", () => {
       expect(template).not.toContain("{{nextDueDate}}");
       expect(template).not.toContain("{{lastConfessionDate}}");
     }
+  });
+});
+
+/**
+ * The plain chat link, as a contract of its own rather than a comment on the
+ * reminder.
+ *
+ * "With no message" has to be checked as a *query* fact and not merely by
+ * eyeballing the string, because a `?text=` that slipped back in would be
+ * invisible in review and would put the parish's saved wording — which names a
+ * member — into a link shown to people who are not overdue. A trailing `?` would
+ * be harmless but untidy, so the URL is compared whole.
+ */
+describe("bare WhatsApp contact links", () => {
+  it("is the chat and nothing else", () => {
+    const url = buildWhatsAppContactUrl({ phone: "01012345678" }, { countryCode: "20" });
+    expect(url).toBe("https://wa.me/201012345678");
+    expect(url).not.toContain("?");
+    expect(new URL(url ?? "").searchParams.get("text")).toBeNull();
+  });
+
+  it("is offered to anyone with a usable number, and to no one without one", () => {
+    // Normalization is shared with the reminder, so the two can never disagree
+    // about which members are reachable.
+    expect(buildWhatsAppContactUrl({ phone: "+20 101 234 5678" }, { countryCode: "20" })).toBe(
+      "https://wa.me/201012345678",
+    );
+    expect(buildWhatsAppContactUrl({ phone: null }, { countryCode: "20" })).toBeNull();
+    // One digit is not a phone number, and a link built from it would open
+    // WhatsApp pointed at nobody.
+    expect(buildWhatsAppContactUrl({ phone: "5" }, { countryCode: "20" })).toBeNull();
+  });
+});
+
+/**
+ * Who gets the reminder, stated once and checked for every status.
+ *
+ * The saved message interpolates how many days late someone is. Handing it to a
+ * member who is not late does not merely look odd — it tells a parishioner, in
+ * the priest's own words, that they are zero days overdue, and it does so from a
+ * button labelled "remind". The queries set `reminderUrl` to null for everyone
+ * this rejects, so the wording never reaches the browser at all; this is the test
+ * that keeps it that way.
+ *
+ * The statuses are walked rather than the two interesting cases sampled, so that
+ * a status added later inherits no reminder by default and fails here instead.
+ */
+describe("who is offered the reminder", () => {
+  const link = "https://wa.me/201012345678?text=hello";
+
+  it("offers it only past the limit", () => {
+    expect(shouldOfferReminder(STATUS.OVERDUE, link)).toBe(true);
+    for (const status of [STATUS.ACTIVE, STATUS.DUE_SOON, STATUS.NEVER_RECORDED]) {
+      expect(shouldOfferReminder(status, link)).toBe(false);
+    }
+  });
+
+  it("offers it to nobody without a link to offer", () => {
+    // A late member with no number must not render a control that leads nowhere;
+    // a null URL is a real state, not a hypothetical one.
+    expect(shouldOfferReminder(STATUS.OVERDUE, null)).toBe(false);
+  });
+
+  it("is not a status the caller can be talked out of by supplying a link", () => {
+    // The rule is a conjunction, so this is what keeps it one: an `||` here would
+    // pass both tests above and hand the saved message to the whole parish.
+    expect(shouldOfferReminder(STATUS.ACTIVE, link)).toBe(false);
+    expect(shouldOfferReminder(STATUS.NEVER_RECORDED, link)).toBe(false);
   });
 });
 
