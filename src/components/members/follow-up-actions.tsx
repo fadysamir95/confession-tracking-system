@@ -91,6 +91,28 @@ export function FollowUpActions({
       if (result.ok) showMessage(result.message);
     });
 
+  /*
+   * Whether anything at all belongs on this row, decided before the wrapper is
+   * built rather than by it collapsing to nothing.
+   *
+   * A member inside their limit is offered neither link — the server has already
+   * withheld both — and has no grace in force, so there is no follow-up of any
+   * kind to show. Rendering an empty wrapper instead would leave the drawer's
+   * 25px of margin behind a gap and put a stray element in a roster row that is
+   * meant to be quiet, so the component returns nothing and the surrounding
+   * layout collapses with it. `FollowUpActions` returning null is a normal
+   * outcome, not an error case, and every caller renders it unconditionally.
+   */
+  const offersExtension = member.status === "OVERDUE" && !member.activeExtension;
+  if (
+    !member.reminderUrl &&
+    !member.whatsappUrl &&
+    !member.activeExtension &&
+    !offersExtension
+  ) {
+    return null;
+  }
+
   return (
     <div
       className={`follow-up follow-up--${variant}`}
@@ -171,7 +193,7 @@ export function FollowUpActions({
             <CloseIcon />
           </button>
         </span>
-      ) : member.status === "OVERDUE" ? (
+      ) : offersExtension ? (
         <ExtendMenu
           disabled={extending}
           onExtend={extend}

@@ -674,9 +674,26 @@ record(
   } grace chips have no undo`,
 );
 
-// The bare link is for everyone, and "no message" has to be checked as a query
-// fact: a `?text=` that slipped back in would put the parish's wording, naming a
-// member, in front of whoever clicked it.
+// The bare link, and "no message" checked as a query fact: a `?text=` that slipped
+// back in would put the parish's wording, naming a member, in front of whoever
+// clicked it.
+//
+// No `length > 0` requirement, and the reason is worth writing down because the
+// requirement was here until it was not. This link used to go to anybody with a
+// number, so the set could not be empty and demanding one was free. It now goes
+// only to members past their limit, which means a parish where nobody is late —
+// nearly all of them, nearly all of the time — renders zero of them. Asserting
+// `bareLinks.length > 0` made the suite fail on a completely healthy system, and a
+// check that cries wolf on a healthy system gets ignored, which costs more than
+// the check was worth. The invariant is "a link with no saved message carries no
+// query string", and with no links there is nothing to violate, so it holds.
+//
+// What stops this from being an unchecked invariant is that the fact it rests on
+// is asserted where it cannot rot: `describe("bare WhatsApp contact links")` in
+// tests/whatsapp-csv.test.ts pins the builder's output to a bare `https://wa.me/
+// <digits>` for a fixed set of phone numbers, and runs on every commit regardless
+// of what any parish's data happens to look like. This check confirms the rendered
+// page agrees with the builder.
 const bareLinks = [
   ...new Set(
     [...dashboard.matchAll(/href="(https:\/\/wa\.me\/[^"]*)"/g)].map((match) =>
@@ -686,16 +703,40 @@ const bareLinks = [
 ].filter((href) => !href.includes("?text="));
 record(
   "the bare WhatsApp link carries no prefilled message",
-  bareLinks.length > 0 && bareLinks.every((href) => !href.includes("?")),
-  bareLinks.filter((href) => href.includes("?")).join(", "),
+  bareLinks.every((href) => !href.includes("?")),
+  bareLinks.filter((href) => href.includes("?")).join(", ") ||
+    `${bareLinks.length} bare link(s) on the page, none carrying a query`,
 );
-const membersWithNumbers = allRows.filter((match) =>
+
+// Both WhatsApp links are for members past their limit, and the rule is that
+// neither appears on anybody else. Checked as a per-row correlation rather than
+// a count, so it cannot pass on a page where every row happens to be late.
+//
+// Reversed from what this used to assert. The bare chat was offered to anyone
+// with a number, on the reasoning that a priest may want to write to somebody who
+// is on time — but a WhatsApp button on a row that needs no chasing is a control
+// with nothing to do, and a roster where most rows carry one buries the two that
+// do need it. The priest asked for the opposite and the server now enforces it,
+// so the check has to follow.
+const rowsWithBareLink = allRows.filter((match) =>
   /href="https:\/\/wa\.me\/\d+"/.test(match[0]),
-).length;
+);
 record(
-  "every member with a number is offered the bare WhatsApp link",
-  allRows.length > 0 && membersWithNumbers > 0,
-  `${membersWithNumbers} of ${allRows.length} roster rows carry a number`,
+  "the bare WhatsApp link is only offered to a member past the limit",
+  allRows.length > 0 && rowsWithBareLink.every((match) => isOverdue(match[0])),
+  `${rowsWithBareLink.length} rows carry a bare chat link; ${
+    rowsWithBareLink.filter((match) => !isOverdue(match[0])).length
+  } of them should not`,
+);
+record(
+  "a member within the limit is offered no WhatsApp link at all",
+  allRows.length > 0 &&
+    allRows
+      .filter((match) => !isOverdue(match[0]))
+      .every((match) => !/href="https:\/\/wa\.me\/\d+/.test(match[0])),
+    `${allRows.filter(
+      (match) => !isOverdue(match[0]) && /href="https:\/\/wa\.me\/\d+/.test(match[0]),
+    ).length} rows within their limit carry a WhatsApp link`,
 );
 
 process.stdout.write(`\n=== the recently recorded card ===\n`);

@@ -4,6 +4,7 @@ import {
   buildWhatsAppReminderUrl,
   defaultWhatsappTemplate,
   normalizePhoneForWhatsApp,
+  shouldOfferContact,
   shouldOfferReminder,
 } from "@/lib/whatsapp";
 import { STATUS } from "@/lib/constants";
@@ -192,6 +193,45 @@ describe("who is offered the reminder", () => {
     // pass both tests above and hand the saved message to the whole parish.
     expect(shouldOfferReminder(STATUS.ACTIVE, link)).toBe(false);
     expect(shouldOfferReminder(STATUS.NEVER_RECORDED, link)).toBe(false);
+  });
+});
+
+/**
+ * Who is offered the bare chat.
+ *
+ * The same past-the-limit condition as the reminder, and asserted in the same
+ * shape — every status, not just the ones this change happened to think about,
+ * so a status added later inherits no WhatsApp link by default and fails here
+ * instead of quietly appearing on every row in the parish.
+ *
+ * Reversed deliberately. The bare link used to go to anyone with a number, on the
+ * reasoning that a priest may want to write to somebody who is on time. What that
+ * actually produced was a WhatsApp button on most rows of a roster that exists to
+ * answer one question — who needs chasing — and it buried the rows that did. The
+ * two gates stay separate functions so that a member past the limit can still be
+ * offered the bare chat *without* the saved wording, which is the combination
+ * worth being able to express.
+ */
+describe("who is offered the bare chat", () => {
+  const link = "https://wa.me/201012345678";
+
+  it("offers it only past the limit", () => {
+    expect(shouldOfferContact(STATUS.OVERDUE, link)).toBe(true);
+    for (const status of [STATUS.ACTIVE, STATUS.DUE_SOON, STATUS.NEVER_RECORDED]) {
+      expect(shouldOfferContact(status, link)).toBe(false);
+    }
+  });
+
+  it("offers it to nobody without a link to offer", () => {
+    expect(shouldOfferContact(STATUS.OVERDUE, null)).toBe(false);
+  });
+
+  it("is decided independently of the reminder", () => {
+    // A member past the limit gets both. Asserted as a pair because the reason
+    // these are two functions rather than one flag is exactly that both true is
+    // the normal case for a late member, not a contradiction.
+    expect(shouldOfferContact(STATUS.OVERDUE, link)).toBe(true);
+    expect(shouldOfferReminder(STATUS.OVERDUE, `${link}?text=hi`)).toBe(true);
   });
 });
 

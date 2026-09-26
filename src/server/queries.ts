@@ -7,6 +7,7 @@ import { sortMembers } from "@/lib/member-filters";
 import {
   buildWhatsAppContactUrl,
   buildWhatsAppReminderUrl,
+  shouldOfferContact,
   shouldOfferReminder,
 } from "@/lib/whatsapp";
 import { canAccess, requireCapability, type TenantContext } from "@/server/auth";
@@ -87,6 +88,10 @@ function addWhatsAppUrl(
     dict,
   });
 
+  const contactUrl = buildWhatsAppContactUrl(member, {
+    countryCode: settings.whatsappCountryCode,
+  });
+
   return {
     ...member,
     // Decided here, and here alone. The saved message states how many days late
@@ -97,10 +102,11 @@ function addWhatsAppUrl(
     // page carries nothing it should not, and there is no second place to
     // forget the rule. `reminderUrl: null` now means exactly "not to be reminded".
     reminderUrl: shouldOfferReminder(member.status, reminderUrl) ? reminderUrl : null,
-    // The bare link carries no message and so is offered to anyone with a number.
-    whatsappUrl: buildWhatsAppContactUrl(member, {
-      countryCode: settings.whatsappCountryCode,
-    }),
+    // The bare link carries no message, so nothing about it is private — but it
+    // is still withheld from anyone inside their limit, because a WhatsApp button
+    // on a member who is on time is a control with nothing to do, and a roster
+    // where most rows carry one buries the two rows that do need it.
+    whatsappUrl: shouldOfferContact(member.status, contactUrl) ? contactUrl : null,
   };
 }
 
@@ -238,15 +244,21 @@ export async function getMemberDetails(context: TenantContext, memberId: string)
     locale: request.locale,
     dict: request.dict,
   });
+  const contactUrl = buildWhatsAppContactUrl(metricsMember, {
+    countryCode: settings.whatsappCountryCode,
+  });
   return {
     ...metricsMember,
     administrativeNote: member.administrativeNote,
     reminderUrl: shouldOfferReminder(metricsMember.status, reminderUrl)
       ? reminderUrl
       : null,
-    whatsappUrl: buildWhatsAppContactUrl(metricsMember, {
-      countryCode: settings.whatsappCountryCode,
-    }),
+    // Same rule as the dashboard's, for the same reason: this is the drawer, so
+    // it is the surface most likely to be handed to a visitor, and a row of
+    // controls with nothing to do on it is worse than none.
+    whatsappUrl: shouldOfferContact(metricsMember.status, contactUrl)
+      ? contactUrl
+      : null,
     history: member.records.map((record) => ({
       id: record.id,
       confessionDate: record.confessionDate,

@@ -322,13 +322,27 @@ const en = {
     record: "Record",
     /**
      * Two WhatsApp links, and the difference between them is the point. The
-     * reminder carries the parish's saved wording and is offered only to
-     * someone past their limit, because the template states how many days late
-     * they are — on anyone else it would say they were zero days overdue. The
-     * plain link opens the chat empty and is offered to everyone with a number.
+     * reminder carries the parish's saved wording; the plain link opens the chat
+     * empty. Both are offered only to someone past their limit.
+     *
+     * The reminder is withheld for the reason the template forces: it states how
+     * many days late they are, and on anyone else it would say they were zero days
+     * overdue. The plain link is withheld for a plainer one — it is a follow-up
+     * control, and a WhatsApp button on a member who is on time is a control with
+     * nothing to do, so a roster where most rows carry one buries the few that
+     * need chasing. That is the whole reason a roster exists.
      */
-    remind: "Remind",
-    remindLabel: "Remind {name} using the saved message",
+    /**
+     * The reminder button, named for the channel it goes out on.
+     *
+     * The channel is in the name because a priest is looking at a roster, not at
+     * a message, and "Remind" on its own does not say where pressing it goes.
+     * It also separates the two buttons that both open WhatsApp: this one
+     * carries the parish's saved wording, and the one beside it opens an empty
+     * conversation.
+     */
+    remind: "Remind via WhatsApp",
+    remindLabel: "Remind {name} via WhatsApp using the saved message",
     remindTooltip: "Open WhatsApp with the saved reminder",
     /**
      * The reminder, once it has been used.
@@ -340,9 +354,9 @@ const en = {
      * passed, or because they were not sure it went — must not be told by the
      * interface that they may not.
      */
-    remindAgain: "Remind again",
+    remindAgain: "Remind again via WhatsApp",
     remindedShort: "Reminded",
-    remindedOn: "Last reminded {date}. Send again using the saved message.",
+    remindedOn: "Last reminded via WhatsApp on {date}. Send again with the saved message.",
     remindedTooltip: "Reminder opened on {date} — this opens it again",
     extend: "Extend duration",
     extendTooltip: "Give more time, and take them off the past-the-limit list",

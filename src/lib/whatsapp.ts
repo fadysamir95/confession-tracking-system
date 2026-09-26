@@ -136,3 +136,30 @@ export function shouldOfferReminder(
 ): boolean {
   return status === STATUS.OVERDUE && reminderUrl !== null;
 }
+
+/**
+ * Whether this member is to be offered the bare chat, given a link to offer.
+ *
+ * The same past-the-limit condition as the reminder, and for a different reason.
+ * The reminder is withheld from a member inside their limit because the saved
+ * wording would tell them they are zero days late. The bare link is withheld for
+ * a plainer reason: it is a follow-up control, and a row full of them on members
+ * who are on time says nothing to the person scanning the roster for who needs
+ * chasing. Both decisions are made here, on the server, so the roster, the
+ * attention queue and the drawer cannot disagree about who is being chased.
+ *
+ * The two gates are separate functions rather than one `shouldOfferWhatsApp`
+ * because they are two decisions, not one: a member past the limit is offered
+ * both, and collapsing them would make it impossible to offer the bare chat
+ * without the saved wording — which is the combination that was actually wanted.
+ *
+ * Returns a boolean rather than the URL for the same reason `shouldOfferReminder`
+ * does: the caller has to decide what a `false` means, and that decision belongs
+ * at the call site rather than hidden inside a name that says only whether.
+ */
+export function shouldOfferContact(
+  status: MemberStatus,
+  whatsappUrl: string | null,
+): boolean {
+  return status === STATUS.OVERDUE && whatsappUrl !== null;
+}
